@@ -38,7 +38,7 @@ class RatingView: UIView {
 
   private var starButtons: [UIButton] = []
   private let starCount = 5
-  private let starSize: CGFloat = 25  // 10% smaller than original 28
+  private let starSize: CGFloat = 25 // 10% smaller than original 28
   private let starSpacing: CGFloat = 4
 
   /// Star color that adapts to light/dark mode - black for light, 90% white for dark
@@ -153,7 +153,7 @@ class RatingView: UIView {
   func setRating(_ newRating: Int, animated: Bool = false) {
     let clampedRating = max(0, min(starCount, newRating))
 
-    if animated && clampedRating != rating {
+    if animated, clampedRating != rating {
       // Animate the change
       UIView.animate(withDuration: 0.15) {
         self.rating = clampedRating

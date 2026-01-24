@@ -453,7 +453,7 @@ class LargeCurrentlyPlayingPlayerView: UIView {
   }
 }
 
-// MARK: - RatingViewDelegate
+// MARK: RatingViewDelegate
 
 extension LargeCurrentlyPlayingPlayerView: RatingViewDelegate {
   func ratingView(_ ratingView: RatingView, didChangeRating rating: Int) {
@@ -467,7 +467,10 @@ extension LargeCurrentlyPlayingPlayerView: RatingViewDelegate {
     // Sync rating to server
     Task {
       do {
-        try await appDelegate.getMeta(account.info).librarySyncer.setRating(song: song, rating: rating)
+        try await appDelegate.getMeta(account.info).librarySyncer.setRating(
+          song: song,
+          rating: rating
+        )
       } catch {
         appDelegate.eventLogger.report(topic: "Song Rating", error: error)
       }
