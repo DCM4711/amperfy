@@ -96,24 +96,26 @@ public class AudioPlayer: NSObject, BackendAudioPlayerNotifiable {
     return backendAudioPlayer.elapsedTime >= Self.replayInsteadPlayPreviousTimeInSec
   }
 
-  private func replayCurrentItem() {
+  private func replayCurrentItem(autoStartPlayback: Bool? = nil) {
     os_log(.debug, "Replay")
     if let currentPlayable = currentlyPlaying {
-      insertIntoPlayer(playable: currentPlayable)
+      insertIntoPlayer(playable: currentPlayable, autoStartPlayback: autoStartPlayback)
     }
     notifyItemStartedPlayingFromBeginning()
   }
 
-  private func insertIntoPlayer(playable: AbstractPlayable) {
+  private func insertIntoPlayer(playable: AbstractPlayable, autoStartPlayback: Bool? = nil) {
     userStatistics.playedItem(
       repeatMode: playerStatus.repeatMode,
       isShuffle: playerStatus.isShuffle
     )
     playable.countPlayed()
+    // Use provided autoStartPlayback, or fall back to user setting
+    let shouldAutoStart = autoStartPlayback ?? !settings.user.isPlaybackStartOnlyOnPlay
     backendAudioPlayer.requestToPlay(
       playable: playable,
       playbackRate: playerStatus.playbackRate,
-      autoStartPlayback: !settings.user.isPlaybackStartOnlyOnPlay
+      autoStartPlayback: shouldAutoStart
     )
   }
 
@@ -175,17 +177,19 @@ public class AudioPlayer: NSObject, BackendAudioPlayerNotifiable {
     }
   }
 
-  func play(playerIndex: PlayerIndex) {
+  func play(playerIndex: PlayerIndex, autoStartPlayback: Bool? = nil) {
     guard let playable = queueHandler.markAndGetPlayableAsPlaying(at: playerIndex) else {
       stop()
       return
     }
-    insertIntoPlayer(playable: playable)
+    insertIntoPlayer(playable: playable, autoStartPlayback: autoStartPlayback)
   }
 
   func playPreviousOrReplay() {
+    // Preserve the current play/pause state when switching tracks
+    let wasPlaying = backendAudioPlayer.isPlaying
     if shouldCurrentItemReplayedInsteadOfPrevious() {
-      replayCurrentItem()
+      replayCurrentItem(autoStartPlayback: wasPlaying)
     } else {
       playPrevious()
     }
@@ -193,19 +197,29 @@ public class AudioPlayer: NSObject, BackendAudioPlayerNotifiable {
 
   // BackendAudioPlayerNotifiable
   func playPrevious() {
+    // Preserve the current play/pause state when switching tracks
+    let wasPlaying = backendAudioPlayer.isPlaying
     if queueHandler.prevQueueCount > 0 {
-      play(playerIndex: PlayerIndex(queueType: .prev, index: queueHandler.prevQueueCount - 1))
+      play(
+        playerIndex: PlayerIndex(queueType: .prev, index: queueHandler.prevQueueCount - 1),
+        autoStartPlayback: wasPlaying
+      )
     } else if playerStatus.repeatMode == .all, queueHandler.nextQueueCount > 0 {
-      play(playerIndex: PlayerIndex(queueType: .next, index: queueHandler.nextQueueCount - 1))
+      play(
+        playerIndex: PlayerIndex(queueType: .next, index: queueHandler.nextQueueCount - 1),
+        autoStartPlayback: wasPlaying
+      )
     } else {
-      replayCurrentItem()
+      replayCurrentItem(autoStartPlayback: wasPlaying)
     }
   }
 
   // BackendAudioPlayerNotifiable
   func playNext() {
+    // Preserve the current play/pause state when switching tracks
+    let wasPlaying = backendAudioPlayer.isPlaying
     if let nextPlayerIndex = nextPlayerIndex {
-      play(playerIndex: nextPlayerIndex)
+      play(playerIndex: nextPlayerIndex, autoStartPlayback: wasPlaying)
     } else {
       stop()
     }

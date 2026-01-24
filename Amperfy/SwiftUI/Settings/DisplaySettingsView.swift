@@ -129,8 +129,7 @@ struct DisplaySettingsView: View {
 
         SettingsSection(
           content: {
-            SettingsCheckBoxRow(title: "Show Star 
-                                Rating", isOn: $settings.isShowRating)
+            SettingsCheckBoxRow(title: "Show Star Rating", isOn: $settings.isShowRating)
           },
           footer:
           "Display star rating in song cells and the currently playing view."
