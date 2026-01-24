@@ -429,7 +429,13 @@ class BackendAudioPlayer: NSObject {
       currentReplayGainValue = playable.replayGainTrackGain
       applyReplayGain()
       insertCachedPlayable(playable: playable)
-      isPlaying = shouldPlaybackStart
+      if shouldPlaybackStart {
+        isPlaying = true
+      } else {
+        // Immediately pause to prevent any audio from playing
+        player?.pause()
+        isPlaying = false
+      }
       responder?.notifyItemPreparationFinished()
     } else if !isOfflineMode {
       currentPlayUrl = ""
@@ -462,7 +468,13 @@ class BackendAudioPlayer: NSObject {
           currentReplayGainValue = playable.replayGainTrackGain
           applyReplayGain()
           try await insertStreamPlayable(playable: playable)
-          isPlaying = shouldPlaybackStart
+          if self.shouldPlaybackStart {
+            self.isPlaying = true
+          } else {
+            // Immediately pause to prevent any audio from playing
+            self.player?.pause()
+            self.isPlaying = false
+          }
           if self.isAutoCachePlayedItems, !playable.isRadio,
              let accountInfo = playable.account?.info {
             self.getPlayableDownloaderCB(accountInfo).download(object: playable)
