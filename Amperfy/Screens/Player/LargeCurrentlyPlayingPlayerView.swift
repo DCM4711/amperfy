@@ -221,9 +221,12 @@ class LargeCurrentlyPlayingPlayerView: UIView {
 
   @objc
   private func handleLyricsTap(_ gesture: UITapGestureRecognizer) {
-    // Toggle back to artwork when lyrics are tapped
-    appDelegate.storage.settings.user.isPlayerLyricsDisplayed = false
-    display(element: .artwork)
+    // Hide lyrics when tapped
+    if displayElement == .lyrics {
+      appDelegate.storage.settings.user.isPlayerLyricsDisplayed = false
+      display(element: .artwork)
+      refreshRating()
+    }
   }
 
   private func addSwipeGesturesToArtwork() {
@@ -245,12 +248,28 @@ class LargeCurrentlyPlayingPlayerView: UIView {
       return swipeRight
     }
 
+    func createTap() -> UITapGestureRecognizer {
+      UITapGestureRecognizer(target: self, action: #selector(handleArtworkTap(_:)))
+    }
+
     artworkImage.isUserInteractionEnabled = true
     artworkImage.addGestureRecognizer(createLeftSwipe())
     artworkImage.addGestureRecognizer(createRightSwipe())
+    artworkImage.addGestureRecognizer(createTap())
     visualizerHostingView?.hostingController?.view.isUserInteractionEnabled = true
     visualizerHostingView?.hostingController?.view.addGestureRecognizer(createRightSwipe())
     visualizerHostingView?.hostingController?.view.addGestureRecognizer(createLeftSwipe())
+  }
+
+  @objc
+  private func handleArtworkTap(_ gesture: UITapGestureRecognizer) {
+    // Toggle lyrics when artwork is tapped
+    if isLyricsButtonAllowedToDisplay && displayElement != .lyrics {
+      appDelegate.storage.settings.user.isPlayerLyricsDisplayed = true
+      appDelegate.storage.settings.user.isPlayerVisualizerDisplayed = false
+      display(element: .lyrics)
+      ratingView?.isHidden = true
+    }
   }
 
   @objc
