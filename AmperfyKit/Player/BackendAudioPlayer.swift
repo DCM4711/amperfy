@@ -428,14 +428,8 @@ class BackendAudioPlayer: NSObject {
       }
       currentReplayGainValue = playable.replayGainTrackGain
       applyReplayGain()
-      insertCachedPlayable(playable: playable)
-      if shouldPlaybackStart {
-        isPlaying = true
-      } else {
-        // Immediately pause to prevent any audio from playing
-        player?.pause()
-        isPlaying = false
-      }
+      insertCachedPlayable(playable: playable, autoStartPlayback: shouldPlaybackStart)
+      isPlaying = shouldPlaybackStart
       responder?.notifyItemPreparationFinished()
     } else if !isOfflineMode {
       currentPlayUrl = ""
@@ -467,14 +461,8 @@ class BackendAudioPlayer: NSObject {
         do {
           currentReplayGainValue = playable.replayGainTrackGain
           applyReplayGain()
-          try await insertStreamPlayable(playable: playable)
-          if self.shouldPlaybackStart {
-            self.isPlaying = true
-          } else {
-            // Immediately pause to prevent any audio from playing
-            self.player?.pause()
-            self.isPlaying = false
-          }
+          try await insertStreamPlayable(playable: playable, autoStartPlayback: self.shouldPlaybackStart)
+          self.isPlaying = self.shouldPlaybackStart
           if self.isAutoCachePlayedItems, !playable.isRadio,
              let accountInfo = playable.account?.info {
             self.getPlayableDownloaderCB(accountInfo).download(object: playable)
@@ -537,7 +525,8 @@ class BackendAudioPlayer: NSObject {
 
   private func insertCachedPlayable(
     playable: AbstractPlayable,
-    queueType: BackendAudioQueueType = .play
+    queueType: BackendAudioQueueType = .play,
+    autoStartPlayback: Bool = true
   ) {
     guard let fileURL = cacheProxy.getFileURL(forPlayable: playable) else {
       return
@@ -551,13 +540,14 @@ class BackendAudioPlayer: NSObject {
       os_log(.default, "Insert Cache: %s (%s)", playable.displayString, fileURL.absoluteString)
     }
     if playable.isSong { userStatistics.playedSong(isPlayedFromCache: true) }
-    insert(playable: playable, withUrl: fileURL, queueType: queueType)
+    insert(playable: playable, withUrl: fileURL, queueType: queueType, autoStartPlayback: autoStartPlayback)
   }
 
   @MainActor
   private func insertStreamPlayable(
     playable: AbstractPlayable,
-    queueType: BackendAudioQueueType = .play
+    queueType: BackendAudioQueueType = .play,
+    autoStartPlayback: Bool = true
   ) async throws {
     let streamingMaxBitrate = streamingMaxBitrates.getActive(networkMonitor: networkMonitor)
     let streamingTranscodingFormat = streamingTranscodings.getActive(networkMonitor: networkMonitor)
@@ -616,7 +606,8 @@ class BackendAudioPlayer: NSObject {
       playable: playable,
       withUrl: streamUrl,
       streamingMaxBitrate: streamingMaxBitrate,
-      queueType: queueType
+      queueType: queueType,
+      autoStartPlayback: autoStartPlayback
     )
   }
 
@@ -624,7 +615,8 @@ class BackendAudioPlayer: NSObject {
     playable: AbstractPlayable,
     withUrl url: URL,
     streamingMaxBitrate: StreamingMaxBitratePreference = .noLimit,
-    queueType: BackendAudioQueueType
+    queueType: BackendAudioQueueType,
+    autoStartPlayback: Bool = true
   ) {
     if queueType == .play {
       seekTimeWhenStarted = nil
@@ -638,12 +630,13 @@ class BackendAudioPlayer: NSObject {
     } else {
       asset = AVURLAsset(url: url)
     }
-    playInPlayer(asset: asset, queueType: queueType)
+    playInPlayer(asset: asset, queueType: queueType, autoStartPlayback: autoStartPlayback)
   }
 
   private func playInPlayer(
     asset: AVURLAsset?,
-    queueType: BackendAudioQueueType
+    queueType: BackendAudioQueueType,
+    autoStartPlayback: Bool = true
   ) {
     guard let asset = asset else {
       clearPlayer()
@@ -654,6 +647,10 @@ class BackendAudioPlayer: NSObject {
     case .play:
       currentPreparedUrl = asset.url.absoluteString
       player?.play(url: asset.url)
+      // Immediately pause if we don't want to auto-start playback
+      if !autoStartPlayback {
+        player?.pause()
+      }
     case .queue:
       nextPreloadedUrl = asset.url.absoluteString
       player?.queue(url: asset.url)
