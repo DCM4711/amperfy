@@ -53,9 +53,15 @@ class RatingView: UIView {
     }
   }
 
-  /// Star color for unselected stars - white with 10% opacity
+  /// Star color for unselected stars - adapts to light/dark mode
   private static var unselectedStarColor: UIColor {
-    UIColor(white: 1.0, alpha: 0.1)
+    UIColor { traitCollection in
+      if traitCollection.userInterfaceStyle == .light {
+        return UIColor(white: 0.0, alpha: 0.2)  // Black with 20% opacity
+      } else {
+        return UIColor(white: 1.0, alpha: 0.1)  // White with 10% opacity
+      }
+    }
   }
 
   private(set) var rating: Int = 0 {
