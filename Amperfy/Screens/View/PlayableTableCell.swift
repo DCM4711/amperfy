@@ -80,6 +80,9 @@ class PlayableTableCell: BasicTableCell {
   @IBOutlet
   weak var playOverNumberButton: UIButton!
 
+  private var ratingStackView: UIStackView?
+  private var ratingStarViews: [UIImageView] = []
+
   static let rowHeight: CGFloat = 48 + margin.bottom + margin.top
   private static let touchAnimation = 0.4
 
@@ -141,8 +144,56 @@ class PlayableTableCell: BasicTableCell {
       playOverArtworkButton.layer.cornerRadius = CornerRadius.small.asCGFloat
       selectionStyle = .none
       downloadProgress.isHidden = true
+      setupRatingStars()
       resetForReuse()
     }
+  }
+
+  private func setupRatingStars() {
+    let stackView = UIStackView()
+    stackView.axis = .horizontal
+    stackView.spacing = -2  // Negative spacing to put stars closer together
+    stackView.alignment = .center
+    stackView.distribution = .fill
+    stackView.translatesAutoresizingMaskIntoConstraints = false
+
+    // Create 5 star image views
+    for _ in 0 ..< 5 {
+      let starView = UIImageView()
+      starView.contentMode = .scaleAspectFit
+      starView.translatesAutoresizingMaskIntoConstraints = false
+      starView.image = .starEmpty
+      starView.tintColor = UIColor(red: 0.882, green: 0.686, blue: 0.255, alpha: 1.0)  // #e1af41
+      let starSize: CGFloat = 10
+      NSLayoutConstraint.activate([
+        starView.widthAnchor.constraint(equalToConstant: starSize),
+        starView.heightAnchor.constraint(equalToConstant: starSize),
+      ])
+      ratingStarViews.append(starView)
+      stackView.addArrangedSubview(starView)
+    }
+
+    contentView.addSubview(stackView)
+
+    NSLayoutConstraint.activate([
+      stackView.trailingAnchor.constraint(equalTo: optionsButton.trailingAnchor, constant: -4),
+      stackView.topAnchor.constraint(equalTo: optionsButton.bottomAnchor, constant: -8),
+    ])
+
+    ratingStackView = stackView
+  }
+
+  private func updateRatingDisplay(rating: Int) {
+    // Show the LAST N stars (right-aligned) instead of first N
+    // This keeps stars right-justified regardless of rating
+    let startIndex = 5 - rating
+    for (index, starView) in ratingStarViews.enumerated() {
+      starView.isHidden = index < startIndex
+      starView.image = .starFill
+    }
+
+    // Only show rating if song has a rating > 0
+    ratingStackView?.isHidden = (rating == 0)
   }
 
   func resetForReuse() {
@@ -150,6 +201,11 @@ class PlayableTableCell: BasicTableCell {
     deleteButton.isHidden = true
     playOverArtworkButton.isHidden = true
     playOverNumberButton.isHidden = true
+    ratingStackView?.isHidden = true
+    // Reset all stars for next use
+    for starView in ratingStarViews {
+      starView.isHidden = false
+    }
   }
 
   override func prepareForReuse() {
@@ -320,6 +376,13 @@ class PlayableTableCell: BasicTableCell {
 
     refreshSubtitleColor()
     refreshCacheAndDuration()
+
+    // Update rating display for songs (only if setting is enabled)
+    if appDelegate.storage.settings.user.isShowRating, let song = playable.asSong {
+      updateRatingDisplay(rating: song.rating)
+    } else {
+      ratingStackView?.isHidden = true
+    }
   }
 
   private func configureTrackNumberLabel() {
