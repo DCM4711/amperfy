@@ -34,6 +34,8 @@ final class Settings: ObservableObject {
   @Published
   var isShowArtistDuration = false
   @Published
+  var isShowRating = true
+  @Published
   var isPlayerShuffleButtonEnabled = true
   @Published
   var screenLockPreventionPreference: ScreenLockPreventionPreference = .defaultValue
