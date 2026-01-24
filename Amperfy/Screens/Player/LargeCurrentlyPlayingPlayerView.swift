@@ -408,6 +408,10 @@ class LargeCurrentlyPlayingPlayerView: UIView {
       lyrics: structuredLyrics,
       scrollAnimation: appDelegate.storage.settings.user.isLyricsSmoothScrolling
     )
+    // For unsynced lyrics, highlight all lines since there's no timing information
+    if !structuredLyrics.synced {
+      lyricsView?.highlightAllLyrics()
+    }
     lyricsView?.isHidden = false
   }
 

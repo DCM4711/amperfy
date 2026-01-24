@@ -83,6 +83,10 @@ class LyricsVC: UIViewController {
       lyrics: structuredLyrics,
       scrollAnimation: appDelegate.storage.settings.user.isLyricsSmoothScrolling
     )
+    // For unsynced lyrics, highlight all lines since there's no timing information
+    if !structuredLyrics.synced {
+      lyricsView?.highlightAllLyrics()
+    }
   }
 
   private func showLyricsAreNotAvailable() {
