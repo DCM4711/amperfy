@@ -101,15 +101,15 @@ class PlayerControlView: UIView {
 
     playerHandler = PlayerUIHandler(player: player, style: .popupPlayer)
 
-    playButton.imageView?.tintColor = .label
-    previousButton.tintColor = .label
-    nextButton.tintColor = .label
-    skipBackwardButton.tintColor = .label
-    skipForwardButton.tintColor = .label
-    airplayButton.tintColor = .label
-    playerModeButton.tintColor = .label
-    volumeButton.tintColor = .label
-    optionsButton.imageView?.tintColor = .label
+    playButton.imageView?.tintColor = .customDarkLabel
+    previousButton.tintColor = .customDarkLabel
+    nextButton.tintColor = .customDarkLabel
+    skipBackwardButton.tintColor = .customDarkLabel
+    skipForwardButton.tintColor = .customDarkLabel
+    airplayButton.tintColor = .customDarkLabel
+    playerModeButton.tintColor = .customDarkLabel
+    volumeButton.tintColor = .customDarkLabel
+    optionsButton.imageView?.tintColor = .customDarkLabel
     refreshPlayer()
     playerHandler?.refreshPlayerOptions(
       optionsButton: optionsButton,

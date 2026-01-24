@@ -57,7 +57,7 @@ extension PopupPlayerVC {
   func refreshOptionButton(button: UIButton, rootView: UIViewController?) {
     var config = UIButton.Configuration.playerRound()
     config.image = .ellipsis
-    config.baseForegroundColor = .label
+    config.baseForegroundColor = .customDarkLabel
     button.isEnabled = true
     button.configuration = config
 
@@ -81,12 +81,12 @@ extension PopupPlayerVC {
          playableInfo.isSong {
         config.image = playableInfo.isFavorite ? .heartFill : .heartEmpty
         config.baseForegroundColor = appDelegate.storage.settings.user
-          .isOnlineMode ? .redHeart : .label
+          .isOnlineMode ? .redHeart : .customDarkLabel
         button.isEnabled = appDelegate.storage.settings.user.isOnlineMode
       } else if let playableInfo = player.currentlyPlaying,
                 let radio = playableInfo.asRadio {
         config.image = .followLink
-        config.baseForegroundColor = .label
+        config.baseForegroundColor = .customDarkLabel
         button.isEnabled = radio.siteURL != nil
       } else {
         config.image = .heartEmpty
@@ -96,7 +96,7 @@ extension PopupPlayerVC {
     case .podcast:
       config.image = .info
       config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(scale: .large)
-      config.baseForegroundColor = .label
+      config.baseForegroundColor = .customDarkLabel
       button.isEnabled = true
     }
     if #available(iOS 17.0, *) {
@@ -137,7 +137,7 @@ extension PopupPlayerVC {
     backgroundImage.image = artwork
     artworkGradientColors = (try? artwork.dominantColors(max: 2)) ?? [
       themePreference.asColor,
-      UIColor.systemBackground,
+      UIColor.customDarkBackground,
     ]
     applyGradientBackground()
   }

@@ -168,7 +168,7 @@ final class HomeVC: UICollectionViewController {
   // MARK: - CollectionView Setup
 
   private func configureCollectionView() {
-    collectionView.backgroundColor = .systemBackground
+    collectionView.backgroundColor = .customDarkBackground
     collectionView.register(
       UINib(nibName: AlbumCollectionCell.typeName, bundle: .main),
       forCellWithReuseIdentifier: AlbumCollectionCell.typeName
@@ -438,7 +438,7 @@ final class SectionHeaderView: UICollectionReusableView {
     let lbl = UILabel()
     lbl.translatesAutoresizingMaskIntoConstraints = false
     lbl.font = UIFont.preferredFont(forTextStyle: .title3).withWeight(.semibold)
-    lbl.textColor = .label
+    lbl.textColor = .customDarkLabel
     return lbl
   }()
 

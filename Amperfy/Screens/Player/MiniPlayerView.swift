@@ -40,13 +40,15 @@ class MiniPlayerView: UIView {
 
   fileprivate lazy var artworkOverlay: UIView = {
     let view = UIView()
-    view.backgroundColor = .black.withAlphaComponent(0.4)
+    // 90% black for dark mode overlay
+    view.backgroundColor = UIColor(white: 0.1, alpha: 0.4)
     view.isHidden = true
 
     let imageView = UIImageView()
     imageView.translatesAutoresizingMaskIntoConstraints = false
     imageView.contentMode = .scaleAspectFit
-    imageView.tintColor = .white
+    // 90% white for dark mode
+    imageView.tintColor = UIColor(white: 0.9, alpha: 1.0)
     imageView.image = .miniPlayer.withRenderingMode(.alwaysTemplate)
 
     view.addSubview(imageView)
@@ -94,7 +96,7 @@ class MiniPlayerView: UIView {
     label.textAlignment = .center
     label.backgroundColor = .clear
     label.numberOfLines = 1
-    label.textColor = .label
+    label.textColor = .customDarkLabel
     return label
   }()
 
@@ -193,7 +195,7 @@ class MiniPlayerView: UIView {
         .withRenderingMode(.alwaysTemplate),
       for: .normal
     )
-    button.imageView?.tintColor = .label
+    button.imageView?.tintColor = .customDarkLabel
     button.showsMenuAsPrimaryAction = true
     return button
   }()
@@ -845,8 +847,9 @@ class MiniPlayerView: UIView {
 
   func refreshPlayer() {
     if traitCollection.userInterfaceStyle == .dark {
-      titleLabel.textColor = .white
-      subtitleLabel.textColor = .lightGray
+      // 90% white for dark mode text
+      titleLabel.textColor = UIColor(white: 0.9, alpha: 1.0)
+      subtitleLabel.textColor = UIColor(white: 0.7, alpha: 1.0)
     } else {
       titleLabel.textColor = .black
       subtitleLabel.textColor = .darkGray

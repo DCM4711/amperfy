@@ -213,7 +213,7 @@ class PlayableTableCell: BasicTableCell {
     #else
       singleTapGestureRecognizer.isEnabled = (displayMode == .normal)
     #endif
-    backgroundColor = .systemBackground
+    backgroundColor = .customDarkBackground
     refresh()
   }
 
@@ -349,7 +349,7 @@ class PlayableTableCell: BasicTableCell {
     optionsButton.isHidden = !isDisplayOptionButton
     if isDisplayOptionButton {
       optionsButton.showsMenuAsPrimaryAction = true
-      optionsButton.imageView?.tintColor = .label
+      optionsButton.imageView?.tintColor = .customDarkLabel
       if let rootView = rootView {
         let playContext = playContextCb != nil ? { self.playContextCb?(self) } : nil
         let playIndex = playerIndexCb != nil ? { self.playerIndexCb?(self) } : nil
@@ -509,7 +509,7 @@ class PlayableTableCell: BasicTableCell {
         configurePlayIndicator(playable: playable)
         deleteButton.isHidden = true
         refreshSubtitleColor()
-        optionsButton.imageView?.tintColor = .label
+        optionsButton.imageView?.tintColor = .customDarkLabel
         backgroundColor = .clear
       }
     }

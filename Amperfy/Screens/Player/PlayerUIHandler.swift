@@ -221,7 +221,7 @@ class PlayerUIHandler: NSObject {
 
     switch style {
     case .miniPlayeriOS, .miniPlayerMac:
-      displayPlaylistButton.tintColor = isSelected ? .tintColor : .label
+      displayPlaylistButton.tintColor = isSelected ? .tintColor : .customDarkLabel
     case .popupPlayer:
       var config = UIButton.Configuration.player(isSelected: isSelected)
       config.image = .playlistDisplayStyle
@@ -235,7 +235,7 @@ class PlayerUIHandler: NSObject {
 
     switch style {
     case .miniPlayeriOS, .miniPlayerMac:
-      displayLyricsButton.tintColor = isSelected ? .tintColor : .label
+      displayLyricsButton.tintColor = isSelected ? .tintColor : .customDarkLabel
     case .popupPlayer:
       break
     }

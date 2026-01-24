@@ -3037,6 +3037,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y3DHXE89YY;
 				INFOPLIST_FILE = Amperfy/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -3045,7 +3046,7 @@
 				);
 				MARKETING_VERSION = 2.1.0;
 				"MARKETING_VERSION[sdk=macosx*]" = 2.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "de.familie-zimba.amperfy-music";
+				PRODUCT_BUNDLE_IDENTIFIER = cc.silversurfer.musifyapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -3076,6 +3077,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y3DHXE89YY;
 				INFOPLIST_FILE = Amperfy/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -3084,7 +3086,7 @@
 				);
 				MARKETING_VERSION = 2.1.0;
 				"MARKETING_VERSION[sdk=macosx*]" = 2.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "de.familie-zimba.amperfy-music";
+				PRODUCT_BUNDLE_IDENTIFIER = cc.silversurfer.musifyapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
