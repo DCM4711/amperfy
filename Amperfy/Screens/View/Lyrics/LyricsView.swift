@@ -31,6 +31,7 @@ class LyricsView: UITableView, UITableViewDataSource, UITableViewDelegate {
   private var lineSpacing: CGFloat = 16
   private var hasLastLyricsLineAlreadyDisplayedOnce = false
   private var scrollAnimation = true
+  private var isFirstScroll = true  // Track if this is the first scroll after display
 
   override init(frame: CGRect, style: UITableView.Style) {
     super.init(frame: frame, style: style)
@@ -135,6 +136,7 @@ class LyricsView: UITableView, UITableViewDataSource, UITableViewDelegate {
     lyricModels.removeAll()
     lastIndex = nil
     hasLastLyricsLineAlreadyDisplayedOnce = false
+    isFirstScroll = true  // Reset so first scroll jumps immediately
     reloadInsets()
 
     guard let lyrics = lyrics else {
@@ -164,12 +166,19 @@ class LyricsView: UITableView, UITableViewDataSource, UITableViewDelegate {
           lyrics.synced // if the lyrics are not synced -> only display
     else { return }
 
+    // First scroll should jump immediately without animation
+    // Subsequent scrolls use the user's scroll animation preference
+    let shouldAnimate = isFirstScroll ? false : scrollAnimation
+    if isFirstScroll {
+      isFirstScroll = false
+    }
+
     guard let indexOfNextLine = lyrics.line.firstIndex(where: { $0.startTime >= time }) else {
       if !hasLastLyricsLineAlreadyDisplayedOnce {
         scrollToRow(
           at: IndexPath(row: lyricModels.count - 1, section: 0),
           at: .middle,
-          animated: scrollAnimation
+          animated: shouldAnimate
         )
         hasLastLyricsLineAlreadyDisplayedOnce = true
       }
@@ -205,7 +214,7 @@ class LyricsView: UITableView, UITableViewDataSource, UITableViewDelegate {
     scrollToRow(
       at: IndexPath(row: indexOfCurrentLine, section: 0),
       at: .middle,
-      animated: scrollAnimation
+      animated: shouldAnimate
     )
   }
 }
