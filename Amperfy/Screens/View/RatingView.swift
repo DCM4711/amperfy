@@ -36,13 +36,14 @@ class RatingView: UIView {
 
   weak var delegate: RatingViewDelegate?
 
-  private var starButtons: [UIButton] = []
+  private var starImageViews: [UIImageView] = []
+  private var stackView: UIStackView!
   private let starCount = 5
-  private let starSize: CGFloat = 25  // 10% smaller than original 28
+  private let starSize: CGFloat = 25
   private let starSpacing: CGFloat = 4
 
-  /// Star color that adapts to light/dark mode - black for light, 90% white for dark
-  private static var starColor: UIColor {
+  /// Star color for selected stars - adapts to light/dark mode
+  private static var selectedStarColor: UIColor {
     UIColor { traitCollection in
       if traitCollection.userInterfaceStyle == .light {
         return .black
@@ -50,6 +51,11 @@ class RatingView: UIView {
         return UIColor(white: 0.9, alpha: 1.0)
       }
     }
+  }
+
+  /// Star color for unselected stars - white with 10% opacity
+  private static var unselectedStarColor: UIColor {
+    UIColor(white: 1.0, alpha: 0.1)
   }
 
   private(set) var rating: Int = 0 {
@@ -73,12 +79,13 @@ class RatingView: UIView {
   // MARK: - Setup
 
   private func setupView() {
-    let stackView = UIStackView()
+    stackView = UIStackView()
     stackView.axis = .horizontal
     stackView.spacing = starSpacing
     stackView.alignment = .center
     stackView.distribution = .equalSpacing
     stackView.translatesAutoresizingMaskIntoConstraints = false
+    stackView.isUserInteractionEnabled = true
 
     addSubview(stackView)
 
@@ -89,28 +96,35 @@ class RatingView: UIView {
       stackView.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor),
     ])
 
-    // Create star buttons
+    // Create star image views
     for i in 0 ..< starCount {
-      let button = UIButton(type: .system)
-      button.tag = i + 1 // Tags 1-5 represent star ratings
-      button.tintColor = Self.starColor
-      button.setImage(.starEmpty, for: .normal)
-
+      let starView = UIImageView()
+      starView.tag = i + 1 // Tags 1-5 represent star ratings
+      starView.contentMode = .scaleAspectFit
+      starView.translatesAutoresizingMaskIntoConstraints = false
+      starView.isUserInteractionEnabled = true
+      
+      // Set the filled star image with pre-baked color (unselected grey)
       let config = UIImage.SymbolConfiguration(pointSize: starSize, weight: .regular)
-      button.setPreferredSymbolConfiguration(config, forImageIn: .normal)
+      let baseImage = UIImage.starFill.withConfiguration(config)
+      starView.image = baseImage.withTintColor(Self.unselectedStarColor, renderingMode: .alwaysOriginal)
 
-      button.addTarget(self, action: #selector(starTapped(_:)), for: .touchUpInside)
+      NSLayoutConstraint.activate([
+        starView.widthAnchor.constraint(equalToConstant: starSize + 8),  // Add padding for tap area
+        starView.heightAnchor.constraint(equalToConstant: starSize + 8),
+      ])
+
+      // Add tap gesture
+      let tap = UITapGestureRecognizer(target: self, action: #selector(starTapped(_:)))
+      starView.addGestureRecognizer(tap)
 
       // Add long press to clear rating
-      let longPress = UILongPressGestureRecognizer(
-        target: self,
-        action: #selector(starLongPressed(_:))
-      )
+      let longPress = UILongPressGestureRecognizer(target: self, action: #selector(starLongPressed(_:)))
       longPress.minimumPressDuration = 0.5
-      button.addGestureRecognizer(longPress)
+      starView.addGestureRecognizer(longPress)
 
-      starButtons.append(button)
-      stackView.addArrangedSubview(button)
+      starImageViews.append(starView)
+      stackView.addArrangedSubview(starView)
     }
 
     updateStarDisplay()
@@ -119,8 +133,9 @@ class RatingView: UIView {
   // MARK: - Actions
 
   @objc
-  private func starTapped(_ sender: UIButton) {
-    let newRating = sender.tag
+  private func starTapped(_ sender: UITapGestureRecognizer) {
+    guard let starView = sender.view else { return }
+    let newRating = starView.tag
 
     // If tapping the same star that represents current rating, clear it
     if newRating == rating {
@@ -166,10 +181,16 @@ class RatingView: UIView {
   // MARK: - Private Methods
 
   private func updateStarDisplay() {
-    for (index, button) in starButtons.enumerated() {
+    let config = UIImage.SymbolConfiguration(pointSize: starSize, weight: .regular)
+    let baseImage = UIImage.starFill.withConfiguration(config)
+    
+    for (index, starView) in starImageViews.enumerated() {
       let starNumber = index + 1
-      let isFilled = starNumber <= rating
-      button.setImage(isFilled ? .starFill : .starEmpty, for: .normal)
+      let isSelected = starNumber <= rating
+      
+      // Create pre-colored images to bypass tintColor override
+      let color = isSelected ? Self.selectedStarColor : Self.unselectedStarColor
+      starView.image = baseImage.withTintColor(color, renderingMode: .alwaysOriginal)
     }
   }
 }
