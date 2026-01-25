@@ -378,7 +378,9 @@ extension PopupPlayerVC: MusicPlayable {
     refresh()
   }
 
-  func didPause() {}
+  func didPause() {
+    largeCurrentlyPlayingView?.onPlayerPause()
+  }
   func didElapsedTimeChange() {}
 
   func didLyricsTimeChange(time: CMTime) {

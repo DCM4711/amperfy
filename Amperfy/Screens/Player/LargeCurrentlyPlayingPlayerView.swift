@@ -288,6 +288,10 @@ class LargeCurrentlyPlayingPlayerView: UIView {
   func refreshLyricsTime(time: CMTime) {
     lyricsView?.scroll(toTime: time)
   }
+  
+  func onPlayerPause() {
+    lyricsView?.onPause()
+  }
 
   func initializeLyrics() {
     guard isLyricsViewAllowedToDisplay else {
