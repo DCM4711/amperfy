@@ -427,7 +427,8 @@ class LargeCurrentlyPlayingPlayerView: UIView {
     )
     // Hide the old favorite button - favorite is now part of the rating view
     favoriteButton.isHidden = true
-    rootView?.refreshOptionButton(button: optionsButton, rootView: rootView)
+    // Hide the options button - its menu items are now in the player controls options menu
+    optionsButton.isHidden = true
     refreshRating()
     display(element: displayElement)
   }

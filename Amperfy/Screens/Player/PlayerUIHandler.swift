@@ -246,7 +246,7 @@ class PlayerUIHandler: NSObject {
     menuCreateCB: @escaping () -> [UIMenuElement]
   ) {
     optionsButton?.showsMenuAsPrimaryAction = true
-    optionsButton?.menu = UIMenu.lazyMenu(title: "Player Options") {
+    optionsButton?.menu = UIMenu.lazyMenu(title: "") {
       menuCreateCB()
     }
   }
