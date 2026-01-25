@@ -365,6 +365,7 @@ class PlayerUIHandler: NSObject {
     timeSlider: UISlider,
     elapsedTimeLabel: UILabel,
     remainingTimeLabel: UILabel,
+    totalTimeLabel: UILabel?,
     audioInfoLabel: UILabel,
     playTypeIcon: UIImageView,
     liveLabel: UILabel
@@ -376,6 +377,28 @@ class PlayerUIHandler: NSObject {
       timeSlider.isEnabled = supportTimeInteraction && (style != .miniPlayeriOS)
       timeSlider.minimumValue = 0.0
       timeSlider.maximumValue = Float(player.duration)
+      
+      // Update total time label - use player duration if available, otherwise use song metadata duration
+      if supportTimeInteraction {
+        let playerDuration = player.duration
+        let songDuration = currentlyPlaying.duration
+        let duration: Int
+        if playerDuration.isNormal, !playerDuration.isZero {
+          duration = Int(ceil(playerDuration))
+        } else if songDuration > 0 {
+          duration = songDuration
+        } else {
+          duration = 0
+        }
+        if duration > 0 {
+          totalTimeLabel?.text = ClockTime(timeInSeconds: duration).asShortString()
+          totalTimeLabel?.isHidden = false
+        } else {
+          totalTimeLabel?.text = ""
+          totalTimeLabel?.isHidden = true
+        }
+      }
+      
       if !timeSlider.isTracking, supportTimeInteraction {
         let elapsedClockTime = ClockTime(timeInSeconds: Int(player.elapsedTime))
         elapsedTimeLabel.text = elapsedClockTime.asShortString()
@@ -391,6 +414,7 @@ class PlayerUIHandler: NSObject {
         audioInfoLabel.isHidden = true
         playTypeIcon.isHidden = true
         liveLabel.isHidden = false
+        totalTimeLabel?.isHidden = true
         timeSlider.minimumValue = 0.0
         timeSlider.maximumValue = 1.0
         timeSlider.value = 0.0
@@ -429,6 +453,7 @@ class PlayerUIHandler: NSObject {
       audioInfoLabel.isHidden = true
       playTypeIcon.isHidden = true
       liveLabel.isHidden = true
+      totalTimeLabel?.isHidden = true
       timeSlider.layer.mask = nil
       elapsedTimeLabel.text = "--:--"
       remainingTimeLabel.text = "--:--"

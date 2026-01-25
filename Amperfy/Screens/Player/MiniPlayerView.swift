@@ -872,6 +872,7 @@ class MiniPlayerView: UIView {
       timeSlider: timeSlider,
       elapsedTimeLabel: elapsedTimeLabel,
       remainingTimeLabel: remainingTimeLabel,
+      totalTimeLabel: nil,
       audioInfoLabel: audioInfoLabel,
       playTypeIcon: playTypeIcon,
       liveLabel: liveLabel
@@ -955,6 +956,7 @@ extension MiniPlayerView: MusicPlayable {
       timeSlider: timeSlider,
       elapsedTimeLabel: elapsedTimeLabel,
       remainingTimeLabel: remainingTimeLabel,
+      totalTimeLabel: nil,
       audioInfoLabel: audioInfoLabel,
       playTypeIcon: playTypeIcon,
       liveLabel: liveLabel

@@ -60,6 +60,8 @@ class PlayerControlView: UIView {
   @IBOutlet
   weak var remainingTimeLabel: UILabel!
   @IBOutlet
+  weak var totalTimeLabel: UILabel!
+  @IBOutlet
   weak var liveLabel: UILabel!
   @IBOutlet
   weak var audioInfoLabel: UILabel!
@@ -123,6 +125,7 @@ class PlayerControlView: UIView {
           timeSlider: self.timeSlider,
           elapsedTimeLabel: self.elapsedTimeLabel,
           remainingTimeLabel: self.remainingTimeLabel,
+          totalTimeLabel: self.totalTimeLabel,
           audioInfoLabel: self.audioInfoLabel,
           playTypeIcon: self.playTypeIcon,
           liveLabel: self.liveLabel
@@ -259,6 +262,7 @@ class PlayerControlView: UIView {
       timeSlider: timeSlider,
       elapsedTimeLabel: elapsedTimeLabel,
       remainingTimeLabel: remainingTimeLabel,
+      totalTimeLabel: totalTimeLabel,
       audioInfoLabel: audioInfoLabel,
       playTypeIcon: playTypeIcon,
       liveLabel: liveLabel
@@ -485,6 +489,7 @@ extension PlayerControlView: MusicPlayable {
       timeSlider: timeSlider,
       elapsedTimeLabel: elapsedTimeLabel,
       remainingTimeLabel: remainingTimeLabel,
+      totalTimeLabel: totalTimeLabel,
       audioInfoLabel: audioInfoLabel,
       playTypeIcon: playTypeIcon,
       liveLabel: liveLabel
