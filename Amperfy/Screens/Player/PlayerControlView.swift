@@ -339,10 +339,20 @@ class PlayerControlView: UIView {
     }
     
     // Clear Queue (will appear first)
-    if player.currentlyPlaying != nil || player.prevQueueCount > 0 || player
-      .userQueueCount > 0 || player.nextQueueCount > 0 {
+    let totalQueueCount = player.prevQueueCount + (player.currentlyPlaying != nil ? 1 : 0) + player.userQueueCount + player.nextQueueCount
+    if totalQueueCount > 0 {
       let clearQueue = UIAction(title: "Clear Queue", image: .clear, handler: { _ in
-        self.player.clearQueues()
+        let itemText = totalQueueCount == 1 ? "item" : "items"
+        let alert = UIAlertController(
+          title: nil,
+          message: "Should the current queue with \(totalQueueCount) \(itemText) really be cleared?",
+          preferredStyle: .actionSheet
+        )
+        alert.addAction(UIAlertAction(title: "Clear Queue", style: .destructive, handler: { _ in
+          self.player.clearQueues()
+        }))
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        self.rootView?.present(alert, animated: true)
       })
       queueActions.append(clearQueue)
     }
