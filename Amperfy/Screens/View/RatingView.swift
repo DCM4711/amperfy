@@ -27,6 +27,7 @@ import UIKit
 @MainActor
 protocol RatingViewDelegate: AnyObject {
   func ratingView(_ ratingView: RatingView, didChangeRating rating: Int)
+  func ratingView(_ ratingView: RatingView, didToggleFavorite isFavorite: Bool)
 }
 
 // MARK: - RatingView
@@ -37,10 +38,18 @@ class RatingView: UIView {
   weak var delegate: RatingViewDelegate?
 
   private var starImageViews: [UIImageView] = []
+  private var heartImageView: UIImageView!
   private var stackView: UIStackView!
   private let starCount = 5
   private let starSize: CGFloat = 25
   private let starSpacing: CGFloat = 4
+  private let heartSpacing: CGFloat = 16  // More spacing before heart
+  
+  private(set) var isFavorite: Bool = false {
+    didSet {
+      updateHeartDisplay()
+    }
+  }
 
   /// Star color for selected stars - adapts to light/dark mode
   private static var selectedStarColor: UIColor {
@@ -85,6 +94,10 @@ class RatingView: UIView {
   // MARK: - Setup
 
   private func setupView() {
+    // Ensure touches can be received
+    isUserInteractionEnabled = true
+    clipsToBounds = false
+    
     stackView = UIStackView()
     stackView.axis = .horizontal
     stackView.spacing = starSpacing
@@ -92,6 +105,7 @@ class RatingView: UIView {
     stackView.distribution = .equalSpacing
     stackView.translatesAutoresizingMaskIntoConstraints = false
     stackView.isUserInteractionEnabled = true
+    stackView.clipsToBounds = false
 
     addSubview(stackView)
 
@@ -100,6 +114,8 @@ class RatingView: UIView {
       stackView.centerYAnchor.constraint(equalTo: centerYAnchor),
       stackView.topAnchor.constraint(greaterThanOrEqualTo: topAnchor),
       stackView.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor),
+      stackView.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor),
+      stackView.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
     ])
 
     // Create star image views
@@ -132,8 +148,37 @@ class RatingView: UIView {
       starImageViews.append(starView)
       stackView.addArrangedSubview(starView)
     }
+    
+    // Add spacer view for extra spacing before heart
+    let spacerView = UIView()
+    spacerView.translatesAutoresizingMaskIntoConstraints = false
+    spacerView.isUserInteractionEnabled = false  // Don't intercept touches
+    spacerView.widthAnchor.constraint(equalToConstant: heartSpacing - starSpacing).isActive = true
+    stackView.addArrangedSubview(spacerView)
+    
+    // Add heart image view for favorite
+    heartImageView = UIImageView()
+    heartImageView.contentMode = .scaleAspectFit
+    heartImageView.translatesAutoresizingMaskIntoConstraints = false
+    heartImageView.isUserInteractionEnabled = true
+    
+    let heartConfig = UIImage.SymbolConfiguration(pointSize: starSize, weight: .regular)
+    let heartImage = UIImage(systemName: "heart.fill")?.withConfiguration(heartConfig)
+    heartImageView.image = heartImage?.withTintColor(Self.unselectedStarColor, renderingMode: .alwaysOriginal)
+    
+    NSLayoutConstraint.activate([
+      heartImageView.widthAnchor.constraint(equalToConstant: starSize + 8),
+      heartImageView.heightAnchor.constraint(equalToConstant: starSize + 8),
+    ])
+    
+    // Add tap gesture for heart
+    let heartTap = UITapGestureRecognizer(target: self, action: #selector(heartTapped(_:)))
+    heartImageView.addGestureRecognizer(heartTap)
+    
+    stackView.addArrangedSubview(heartImageView)
 
     updateStarDisplay()
+    updateHeartDisplay()
   }
 
   // MARK: - Actions
@@ -168,6 +213,16 @@ class RatingView: UIView {
     let generator = UIImpactFeedbackGenerator(style: .medium)
     generator.impactOccurred()
   }
+  
+  @objc
+  private func heartTapped(_ sender: UITapGestureRecognizer) {
+    setFavorite(!isFavorite, animated: true)
+    delegate?.ratingView(self, didToggleFavorite: isFavorite)
+    
+    // Haptic feedback
+    let generator = UIImpactFeedbackGenerator(style: .light)
+    generator.impactOccurred()
+  }
 
   // MARK: - Public Methods
 
@@ -182,6 +237,21 @@ class RatingView: UIView {
     } else {
       rating = clampedRating
     }
+  }
+  
+  func setFavorite(_ newFavorite: Bool, animated: Bool = false) {
+    if animated && newFavorite != isFavorite {
+      UIView.animate(withDuration: 0.15) {
+        self.isFavorite = newFavorite
+      }
+    } else {
+      isFavorite = newFavorite
+    }
+  }
+  
+  /// Set whether the heart button is visible (hide when not a song)
+  func setHeartVisible(_ visible: Bool) {
+    heartImageView?.isHidden = !visible
   }
 
   // MARK: - Private Methods
@@ -198,5 +268,16 @@ class RatingView: UIView {
       let color = isSelected ? Self.selectedStarColor : Self.unselectedStarColor
       starView.image = baseImage.withTintColor(color, renderingMode: .alwaysOriginal)
     }
+  }
+  
+  private func updateHeartDisplay() {
+    guard let heartImageView = heartImageView else { return }
+    
+    let config = UIImage.SymbolConfiguration(pointSize: starSize, weight: .regular)
+    let heartImage = UIImage(systemName: "heart.fill")?.withConfiguration(config)
+    
+    // Selected heart is red, unselected has same opacity as unselected stars
+    let color: UIColor = isFavorite ? .systemRed : Self.unselectedStarColor
+    heartImageView.image = heartImage?.withTintColor(color, renderingMode: .alwaysOriginal)
   }
 }

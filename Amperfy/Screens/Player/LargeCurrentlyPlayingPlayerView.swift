@@ -215,7 +215,8 @@ class LargeCurrentlyPlayingPlayerView: UIView {
       ratingView!.centerXAnchor.constraint(equalTo: centerXAnchor),
       ratingView!.centerYAnchor.constraint(equalTo: spacerGuide.centerYAnchor),
       ratingView!.heightAnchor.constraint(equalToConstant: 36),
-      ratingView!.widthAnchor.constraint(equalToConstant: 180),
+      // Width needs to accommodate 5 stars + spacing + heart
+      ratingView!.widthAnchor.constraint(equalToConstant: 250),
     ])
   }
 
@@ -424,22 +425,38 @@ class LargeCurrentlyPlayingPlayerView: UIView {
       albumButton: albumButton,
       albumContainerView: albumContainerView
     )
-    rootView?.refreshFavoriteButton(button: favoriteButton)
+    // Hide the old favorite button - favorite is now part of the rating view
+    favoriteButton.isHidden = true
     rootView?.refreshOptionButton(button: optionsButton, rootView: rootView)
     refreshRating()
     display(element: displayElement)
   }
 
   func refreshRating() {
-    guard appDelegate.storage.settings.user.isShowRating,
-          let song = rootView?.player.currentlyPlaying?.asSong else {
+    guard appDelegate.storage.settings.user.isShowRating else {
       ratingView?.setRating(0, animated: false)
+      ratingView?.setFavorite(false, animated: false)
       ratingView?.isHidden = true
       return
     }
+    
+    let playable = rootView?.player.currentlyPlaying
+    let song = playable?.asSong
+    
     // Keep rating hidden when lyrics are displayed
     ratingView?.isHidden = (displayElement == .lyrics)
-    ratingView?.setRating(song.rating, animated: false)
+    
+    // Set rating (only for songs)
+    if let song = song {
+      ratingView?.setRating(song.rating, animated: false)
+      ratingView?.setFavorite(song.isFavorite, animated: false)
+      ratingView?.setHeartVisible(true)
+    } else {
+      ratingView?.setRating(0, animated: false)
+      ratingView?.setFavorite(false, animated: false)
+      // Hide heart for non-songs (radios, podcasts, etc.)
+      ratingView?.setHeartVisible(playable?.isSong == true)
+    }
   }
 
   func refreshArtwork() {
@@ -493,6 +510,28 @@ extension LargeCurrentlyPlayingPlayerView: RatingViewDelegate {
         try await appDelegate.getMeta(account.info).librarySyncer.setRating(song: song, rating: rating)
       } catch {
         appDelegate.eventLogger.report(topic: "Song Rating", error: error)
+      }
+    }
+  }
+  
+  func ratingView(_ ratingView: RatingView, didToggleFavorite isFavorite: Bool) {
+    guard let playable = rootView?.player.currentlyPlaying,
+          playable.isSong,
+          let account = playable.account
+    else { return }
+    
+    // Toggle favorite on server
+    Task { @MainActor in
+      do {
+        try await playable.remoteToggleFavorite(
+          syncer: appDelegate.getMeta(account.info).librarySyncer
+        )
+        // Refresh to update the heart state
+        rootView?.refresh()
+      } catch {
+        appDelegate.eventLogger.report(topic: "Toggle Favorite", error: error)
+        // Revert the UI state on error
+        ratingView.setFavorite(!isFavorite, animated: true)
       }
     }
   }
