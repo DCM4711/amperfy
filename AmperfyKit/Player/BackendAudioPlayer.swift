@@ -103,6 +103,9 @@ class BackendAudioPlayer: NSObject {
   private var timerElapsedTimeInterval: Timer?
   private var timerLyricsTimeInterval: Timer?
   private var volumePlayer: Float = 1.0
+  
+  // Pending asset to play when user presses play (used when autoStartPlayback is false)
+  private var pendingPlayAsset: AVURLAsset?
 
   private var player: AudioStreamingPlayer?
   private var equalizer: AVAudioUnitEQ?
@@ -312,7 +315,15 @@ class BackendAudioPlayer: NSObject {
 
   func continuePlay() {
     isPlaying = true
-    player?.resume()
+    
+    // If there's a pending asset (from next/prev while paused), play it now
+    if let pendingAsset = pendingPlayAsset {
+      pendingPlayAsset = nil
+      player?.play(url: pendingAsset.url)
+    } else {
+      player?.resume()
+    }
+    
     startTimers()
     player?.rate = Float(userDefinedPlaybackRate.asDouble)
     audioAnalyzer.play()
@@ -327,6 +338,7 @@ class BackendAudioPlayer: NSObject {
 
   func stop() {
     isPlaying = false
+    pendingPlayAsset = nil
     clearPlayer()
     audioAnalyzer.stop()
   }
@@ -508,6 +520,7 @@ class BackendAudioPlayer: NSObject {
     currentPlayUrl = ""
     nextPreloadedPlayable = nil
     nextPreloadedUrl = ""
+    pendingPlayAsset = nil
     playType = nil
     perloadedPlayType = nil
     activeStreamingBitrate = nil
@@ -646,10 +659,16 @@ class BackendAudioPlayer: NSObject {
     switch queueType {
     case .play:
       currentPreparedUrl = asset.url.absoluteString
-      player?.play(url: asset.url)
-      // Immediately pause if we don't want to auto-start playback
+      
       if !autoStartPlayback {
-        player?.pause()
+        // Don't start audio at all - just store the asset for when user presses play
+        pendingPlayAsset = asset
+        // Stop any currently playing audio
+        player?.stop()
+      } else {
+        // Clear any pending asset since we're playing now
+        pendingPlayAsset = nil
+        player?.play(url: asset.url)
       }
     case .queue:
       nextPreloadedUrl = asset.url.absoluteString
