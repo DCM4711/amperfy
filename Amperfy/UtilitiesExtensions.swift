@@ -250,6 +250,14 @@ extension UIButton.Configuration {
     var config = UIButton.Configuration.gray()
     config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(scale: .medium)
     config.buttonSize = .small
+    // Use black background in dark mode, keep default grey in light mode
+    config.background.backgroundColor = UIColor { traitCollection in
+      if traitCollection.userInterfaceStyle == .dark {
+        return .black
+      } else {
+        return .secondarySystemFill
+      }
+    }
     return config
   }
 }
