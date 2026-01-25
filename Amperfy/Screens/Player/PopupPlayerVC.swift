@@ -81,7 +81,12 @@ class PopupPlayerVC: UIViewController, UIScrollViewDelegate {
     player.addNotifier(notifier: self)
     playerHandler = PlayerUIHandler(player: player, style: .popupPlayer)
 
-    backgroundImage.setBackgroundBlur(style: .prominent)
+    // Use lower blur alpha on iPad to ensure gradient colors are visible
+    if UIDevice.current.userInterfaceIdiom == .pad {
+      backgroundImage.setBackgroundBlur(style: .prominent, alpha: 0.9)
+    } else {
+      backgroundImage.setBackgroundBlur(style: .prominent)
+    }
 
     controlPlaceholderHeightConstraint.constant = PlayerControlView
       .frameHeight + safetyMarginOnBottom
@@ -107,8 +112,6 @@ class PopupPlayerVC: UIViewController, UIScrollViewDelegate {
       createdLargeCurrentlyPlayingView.prepare(toWorkOnRootView: self)
       largePlayerPlaceholderView.addSubview(createdLargeCurrentlyPlayingView)
     }
-
-    closeButtonPlaceholderView.isHidden = true
 
     setupTableView()
     fetchSongInfoAndUpdateViews()

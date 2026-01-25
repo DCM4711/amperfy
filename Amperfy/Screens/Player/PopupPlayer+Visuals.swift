@@ -143,7 +143,19 @@ extension PopupPlayerVC {
   }
 
   internal func applyGradientBackground() {
-    let colors = artworkGradientColors.compactMap { $0.cgColor }
+    // Sort colors so darker color is at the bottom (end of gradient)
+    let sortedColors = artworkGradientColors.sorted { color1, color2 in
+      // Calculate perceived brightness: darker colors should come last
+      var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+      var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+      color1.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+      color2.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+      let brightness1 = (r1 * 299 + g1 * 587 + b1 * 114) / 1000
+      let brightness2 = (r2 * 299 + g2 * 587 + b2 * 114) / 1000
+      return brightness1 > brightness2  // Brighter colors first (top), darker last (bottom)
+    }
+    
+    let colors = sortedColors.compactMap { $0.cgColor }
     // remove existing gradient layer
     backgroundImage.layer.sublayers?.forEach { layer in
       if layer is CAGradientLayer {

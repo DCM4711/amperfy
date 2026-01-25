@@ -57,7 +57,7 @@ class RatingView: UIView {
   private static var unselectedStarColor: UIColor {
     UIColor { traitCollection in
       if traitCollection.userInterfaceStyle == .light {
-        return UIColor(white: 0.0, alpha: 0.2)  // Black with 20% opacity
+        return UIColor(white: 0.0, alpha: 0.2)  // Black with 2 0% opacity
       } else {
         return UIColor(white: 1.0, alpha: 0.1)  // White with 10% opacity
       }
