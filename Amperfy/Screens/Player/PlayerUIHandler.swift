@@ -338,11 +338,21 @@ class PlayerUIHandler: NSObject {
   }
 
   private var remainingTime: Int? {
-    let duration = player.duration
-    if player.currentlyPlaying != nil, duration.isNormal, !duration.isZero {
-      return Int(player.elapsedTime - ceil(player.duration))
+    guard let currentlyPlaying = player.currentlyPlaying else { return nil }
+    let playerDuration = player.duration
+    let songDuration = currentlyPlaying.duration
+    
+    // Use player duration if available, otherwise fall back to song metadata duration
+    let effectiveDuration: Double
+    if playerDuration.isNormal, !playerDuration.isZero {
+      effectiveDuration = playerDuration
+    } else if songDuration > 0 {
+      effectiveDuration = Double(songDuration)
+    } else {
+      return nil
     }
-    return nil
+    
+    return Int(player.elapsedTime - ceil(effectiveDuration))
   }
 
   func timeSliderChanged(timeSlider: UISlider) {
@@ -356,8 +366,11 @@ class PlayerUIHandler: NSObject {
   ) {
     let elapsedClockTime = ClockTime(timeInSeconds: Int(timeSlider.value))
     elapsedTimeLabel.text = elapsedClockTime.asShortString()
+    
+    // Use slider's maxValue which already has the effective duration
+    let effectiveDuration = Double(timeSlider.maximumValue)
     let remainingTime =
-      ClockTime(timeInSeconds: Int(Double(timeSlider.value) - ceil(player.duration)))
+      ClockTime(timeInSeconds: Int(Double(timeSlider.value) - ceil(effectiveDuration)))
     remainingTimeLabel.text = remainingTime.asShortString()
   }
 
@@ -376,20 +389,24 @@ class PlayerUIHandler: NSObject {
       let supportTimeInteraction = !currentlyPlaying.isRadio
       timeSlider.isEnabled = supportTimeInteraction && (style != .miniPlayeriOS)
       timeSlider.minimumValue = 0.0
-      timeSlider.maximumValue = Float(player.duration)
       
-      // Update total time label - use player duration if available, otherwise use song metadata duration
+      // Use player duration if available, otherwise fall back to song metadata duration
+      // This ensures the slider is visible even before streaming content loads
+      let playerDuration = player.duration
+      let songDuration = currentlyPlaying.duration
+      let effectiveDuration: Float
+      if playerDuration.isNormal, !playerDuration.isZero {
+        effectiveDuration = Float(playerDuration)
+      } else if songDuration > 0 {
+        effectiveDuration = Float(songDuration)
+      } else {
+        effectiveDuration = 1.0  // Fallback to prevent zero range
+      }
+      timeSlider.maximumValue = effectiveDuration
+      
+      // Update total time label
       if supportTimeInteraction {
-        let playerDuration = player.duration
-        let songDuration = currentlyPlaying.duration
-        let duration: Int
-        if playerDuration.isNormal, !playerDuration.isZero {
-          duration = Int(ceil(playerDuration))
-        } else if songDuration > 0 {
-          duration = songDuration
-        } else {
-          duration = 0
-        }
+        let duration = Int(ceil(effectiveDuration))
         if duration > 0 {
           totalTimeLabel?.text = ClockTime(timeInSeconds: duration).asShortString()
           totalTimeLabel?.isHidden = false
