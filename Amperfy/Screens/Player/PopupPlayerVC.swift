@@ -55,6 +55,10 @@ class PopupPlayerVC: UIViewController, UIScrollViewDelegate {
   var controlView: PlayerControlView?
   var largeCurrentlyPlayingView: LargeCurrentlyPlayingPlayerView?
   var accountNotificationHandler: AccountNotificationHandler?
+  
+  /// Tracks whether the player has been "primed" this session to work around
+  /// a bug where the first play after app restart doesn't produce audio
+  private static var hasPlayerBeenPrimedThisSession = false
 
   var currentlyPlayingTableCell: CurrentlyPlayingTableCell?
   var contextPrevQueueSectionHeader: ContextQueuePrevSectionHeader?
@@ -193,6 +197,32 @@ class PopupPlayerVC: UIViewController, UIScrollViewDelegate {
     scrollToCurrentlyPlayingRow()
     controlView?.refreshView()
     refresh()
+    
+    // Workaround: Prime the player if this is a resume scenario after app restart
+    primePlayerIfNeeded()
+  }
+  
+  /// Workaround for a bug where the first play after app restart doesn't produce audio.
+  /// If we detect a song with saved progress and the player hasn't been used yet,
+  /// we simulate a quick play-pause cycle to "prime" the audio system.
+  private func primePlayerIfNeeded() {
+    // Only do this once per app session
+    guard !Self.hasPlayerBeenPrimedThisSession else { return }
+    
+    // Check if there's a song with saved progress (meaning it was playing before app closed)
+    guard let currentPlayable = player.currentlyPlaying,
+          currentPlayable.playProgress > 0,
+          !player.isPlaying else { return }
+    
+    // Mark as primed so we don't do this again
+    Self.hasPlayerBeenPrimedThisSession = true
+    
+    // Simulate play -> wait 200ms -> pause to prime the audio system
+    player.play()
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+      self?.player.pause()
+      self?.controlView?.refreshView()
+    }
   }
 
   override func viewWillDisappear(_ animated: Bool) {

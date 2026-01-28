@@ -165,7 +165,7 @@ public struct UserSettings: Sendable, Codable {
     set { _isPlaybackStartOnlyOnPlay = newValue }
   }
 
-  private var _isPlayerSongPlaybackResumeEnabled: Bool = false
+  private var _isPlayerSongPlaybackResumeEnabled: Bool = true
   public var isPlayerSongPlaybackResumeEnabled: Bool {
     get { _isPlayerSongPlaybackResumeEnabled }
     set { _isPlayerSongPlaybackResumeEnabled = newValue }

@@ -99,6 +99,8 @@ public class AudioPlayer: NSObject, BackendAudioPlayerNotifiable {
   private func replayCurrentItem(autoStartPlayback: Bool? = nil) {
     os_log(.debug, "Replay")
     if let currentPlayable = currentlyPlaying {
+      // Clear play progress since we're replaying from the beginning
+      currentPlayable.playProgress = 0
       insertIntoPlayer(playable: currentPlayable, autoStartPlayback: autoStartPlayback)
     }
     notifyItemStartedPlayingFromBeginning()
@@ -157,6 +159,7 @@ public class AudioPlayer: NSObject, BackendAudioPlayerNotifiable {
 
   public func play(context: PlayContext) {
     guard let activePlayable = context.getActivePlayable() else { return }
+    let previouslyPlaying = currentlyPlaying
     let topUserQueueItem = queueHandler.getUserQueueItem(at: 0)
     let wasUserQueuePlaying = queueHandler.isUserQueuePlaying
     queueHandler.clearActiveQueue()
@@ -171,6 +174,10 @@ public class AudioPlayer: NSObject, BackendAudioPlayerNotifiable {
         queueHandler.insertUserQueue(playables: [topUserQueueItem])
       }
     } else if context.index == 0 {
+      // Clear play progress of previous song when switching tracks
+      if let previous = previouslyPlaying, previous != activePlayable {
+        previous.playProgress = 0
+      }
       insertIntoPlayer(playable: activePlayable)
     } else {
       play(playerIndex: PlayerIndex(queueType: .next, index: context.index - 1))
@@ -178,10 +185,19 @@ public class AudioPlayer: NSObject, BackendAudioPlayerNotifiable {
   }
 
   func play(playerIndex: PlayerIndex, autoStartPlayback: Bool? = nil) {
+    let previouslyPlaying = currentlyPlaying
+    
     guard let playable = queueHandler.markAndGetPlayableAsPlaying(at: playerIndex) else {
       stop()
       return
     }
+    
+    // Clear play progress of previous song when switching tracks
+    // (play progress should only be remembered for app restart, not for skipping)
+    if let previous = previouslyPlaying, previous != playable {
+      previous.playProgress = 0
+    }
+    
     insertIntoPlayer(playable: playable, autoStartPlayback: autoStartPlayback)
   }
 

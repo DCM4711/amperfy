@@ -95,16 +95,6 @@ struct PlayerSettingsView: View {
           )
         }
 
-        SettingsSection(
-          content: {
-            SettingsCheckBoxRow(
-              title: "Song Playback Resume",
-              isOn: $settings.isPlayerSongPlaybackResumeEnabled
-            )
-          },
-          footer: "Keeps track of song progress so playback continues from the previously saved position."
-        )
-
         // Streaming Format Settings
         SettingsSection(
           content: {
