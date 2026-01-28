@@ -105,10 +105,6 @@ struct PlayerSettingsView: View {
           footer: "Keeps track of song progress so playback continues from the previously saved position."
         )
 
-        SettingsSection(content: {
-          SettingsCheckBoxRow(title: "Manual Playback", isOn: $settings.isPlaybackStartOnlyOnPlay)
-        }, footer: "Enable to start playback only when the Play button is pressed.")
-
         // Streaming Format Settings
         SettingsSection(
           content: {
