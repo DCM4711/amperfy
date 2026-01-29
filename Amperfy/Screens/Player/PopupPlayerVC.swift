@@ -229,14 +229,21 @@ class PopupPlayerVC: UIViewController, UIScrollViewDelegate {
     // Disable artwork scale animation during priming
     largeCurrentlyPlayingView?.isArtworkScaleAnimationEnabled = false
     
+    // Mute audio during priming to prevent audible blip
+    let savedVolume = player.volume
+    player.volume = 0
+    
     // Simulate play -> wait 200ms -> pause to prime the audio system
     player.play()
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-      self?.player.pause()
-      self?.controlView?.refreshView()
+      guard let self else { return }
+      self.player.pause()
+      // Restore volume after pausing
+      self.player.volume = savedVolume
+      self.controlView?.refreshView()
       // Re-enable artwork scale animation and set initial scale
-      self?.largeCurrentlyPlayingView?.isArtworkScaleAnimationEnabled = true
-      self?.largeCurrentlyPlayingView?.setInitialArtworkScale()
+      self.largeCurrentlyPlayingView?.isArtworkScaleAnimationEnabled = true
+      self.largeCurrentlyPlayingView?.setInitialArtworkScale()
     }
   }
 
