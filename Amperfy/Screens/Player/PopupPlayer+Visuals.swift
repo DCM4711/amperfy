@@ -178,6 +178,8 @@ extension PopupPlayerVC {
     if curPlayable.uniqueID == downloadNotification.id {
       Task { @MainActor in
         refreshBackgroundItemArtwork()
+        // Refresh UI to update play type icon (shows green when cached)
+        refresh()
       }
     }
     if let artwork = curPlayable.artwork,

@@ -29,6 +29,7 @@ import UIKit
 class MiniPlayerView: UIView {
   private var player: PlayerFacade
   private var playerHandler: PlayerUIHandler?
+  private var accountNotificationHandler: AccountNotificationHandler?
 
   private var hoverOverlayView: UIView?
 
@@ -564,6 +565,23 @@ class MiniPlayerView: UIView {
     #endif
 
     player.addNotifier(notifier: self)
+    
+    // Register for download finished notifications to update play type icon
+    // Use AccountNotificationHandler to register for all accounts
+    let accountNotificationHandler = AccountNotificationHandler(
+      storage: appDelegate.storage,
+      notificationHandler: appDelegate.notificationHandler
+    )
+    accountNotificationHandler.registerCallbackForAllAccounts { [weak self] accountInfo in
+      guard let self else { return }
+      appDelegate.notificationHandler.register(
+        self,
+        selector: #selector(downloadFinishedSuccessful(notification:)),
+        name: .downloadFinishedSuccess,
+        object: appDelegate.getMeta(accountInfo).playableDownloadManager
+      )
+    }
+    self.accountNotificationHandler = accountNotificationHandler
 
     registerForTraitChanges(
       [UITraitUserInterfaceStyle.self, UITraitHorizontalSizeClass.self],
@@ -578,6 +596,18 @@ class MiniPlayerView: UIView {
     ) in
       self.refreshForTabAccessoryTraitChange()
       self.tabAccessoryTraitChangeCB?()
+    }
+  }
+  
+  @objc
+  private func downloadFinishedSuccessful(notification: Notification) {
+    guard let downloadNotification = DownloadNotification.fromNotification(notification),
+          let curPlayable = player.currentlyPlaying
+    else { return }
+    if curPlayable.uniqueID == downloadNotification.id {
+      Task { @MainActor in
+        refreshPlayer()
+      }
     }
   }
 

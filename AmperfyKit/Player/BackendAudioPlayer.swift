@@ -106,6 +106,15 @@ class BackendAudioPlayer: NSObject {
   
   // Pending asset to play when user presses play (used when autoStartPlayback is false)
   private var pendingPlayAsset: AVURLAsset?
+  
+  // Track playable that was temporarily cached for seeking (will be deleted on song change)
+  private var temporarilyCachedPlayable: AbstractPlayable?
+  
+  // Track the currently playing playable (for switching from stream to cache on seek)
+  private var currentPlayable: AbstractPlayable?
+  
+  // Callback to delete cache of a playable
+  public var deleteCacheCB: ((AbstractPlayable) -> Void)?
 
   private var player: AudioStreamingPlayer?
   private var equalizer: AVAudioUnitEQ?
@@ -339,6 +348,15 @@ class BackendAudioPlayer: NSObject {
   func stop() {
     isPlaying = false
     pendingPlayAsset = nil
+    currentPlayable = nil
+    
+    // Clean up temporarily cached song
+    if let tempCached = temporarilyCachedPlayable, tempCached.isCached {
+      os_log(.debug, "Stopping - deleting temporary cache: %s", tempCached.displayString)
+      deleteCacheCB?(tempCached)
+      temporarilyCachedPlayable = nil
+    }
+    
     clearPlayer()
     audioAnalyzer.stop()
   }
@@ -349,12 +367,86 @@ class BackendAudioPlayer: NSObject {
   }
 
   func seek(toSecond: Double) {
-    if currentPlayUrl != "", player?.getState() == .playing || player?.getState() == .paused {
+    let state = player?.getState()
+    os_log(
+      .debug,
+      "Seek to %f - currentPlayUrl: '%s', state: %s, playType: %s",
+      toSecond,
+      currentPlayUrl,
+      String(describing: state),
+      String(describing: playType)
+    )
+    
+    // If currently streaming but song is now cached, switch to cached version for seeking
+    if playType == .stream,
+       let playable = currentPlayable,
+       playable.isCached,
+       let relFilePath = playable.relFilePath,
+       fileManager.fileExits(relFilePath: relFilePath) {
+      os_log(.debug, "Song now cached - switching from stream to cache for seeking to %f", toSecond)
+      let wasPlaying = isPlaying
+      
+      // Match the exact flow from handleRequest for cached files
+      currentPlayUrl = ""
+      nextPreloadedPlayable = nil
+      nextPreloadedUrl = ""
+      activeStreamingBitrate = nil
+      perloadedStreamingBitrate = nil
+      activeTranscodingFormat = nil
+      preloadTranscodingFormat = nil
+      
+      // Set isAutoStartPlayback so shouldPlaybackStart returns correct value
+      isAutoStartPlayback = true
+      
+      currentReplayGainValue = playable.replayGainTrackGain
+      applyReplayGain()
+      
+      // Use seekTo parameter to pass the seek position
+      insertCachedPlayable(playable: playable, autoStartPlayback: true, seekTo: toSecond)
+      isPlaying = true
+      
+      // Safety net: if didStartPlaying callback doesn't fire or URL doesn't match,
+      // perform the seek after a delay as backup
+      let seekPosition = toSecond
+      let shouldPause = !wasPlaying
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+        guard let self else { return }
+        // Only seek if it wasn't already done (seekTimeWhenStarted would be nil if processed)
+        if self.seekTimeWhenStarted != nil {
+          os_log(.debug, "Safety net: Executing backup seek to %f", seekPosition)
+          self.player?.seek(to: seekPosition)
+          self.seekTimeWhenStarted = nil
+        }
+        if shouldPause {
+          self.pause()
+        }
+      }
+      
+      return
+    }
+    
+    if currentPlayUrl != "",
+       state == .playing || state == .paused || state == .bufferring {
       seekTimeWhenStarted = nil
       player?.seek(to: toSecond)
+      os_log(.debug, "Seek executed via player")
     } else {
       seekTimeWhenStarted = toSecond
+      os_log(.debug, "Seek deferred to seekTimeWhenStarted")
     }
+  }
+  
+  private func clearPlayerState() {
+    currentPreparedUrl = ""
+    currentPlayUrl = ""
+    nextPreloadedPlayable = nil
+    nextPreloadedUrl = ""
+    playType = nil
+    perloadedPlayType = nil
+    activeStreamingBitrate = nil
+    perloadedStreamingBitrate = nil
+    activeTranscodingFormat = nil
+    preloadTranscodingFormat = nil
   }
 
   private func restartPlayer() {
@@ -397,6 +489,15 @@ class BackendAudioPlayer: NSObject {
     playbackRate: PlaybackRate,
     autoStartPlayback: Bool
   ) {
+    // Clean up temporarily cached song from previous playback (if different song)
+    if let tempCached = temporarilyCachedPlayable,
+       tempCached != playable,
+       tempCached.isCached {
+      os_log(.debug, "Deleting temporary cache: %s", tempCached.displayString)
+      deleteCacheCB?(tempCached)
+      temporarilyCachedPlayable = nil
+    }
+    
     userDefinedPlaybackRate = playbackRate
     player?.rate = Float(userDefinedPlaybackRate.asDouble)
     isAutoStartPlayback = autoStartPlayback
@@ -404,12 +505,15 @@ class BackendAudioPlayer: NSObject {
   }
 
   private func handleRequest(playable: AbstractPlayable) {
+    currentPlayable = playable
+    
     if isPreviousPlaylableFinshed, let nextPreloadedPlayable = nextPreloadedPlayable,
        nextPreloadedPlayable == playable {
       // Do nothing next preloaded playable has already been queued to player
       os_log(.default, "Play Preloaded: %s", nextPreloadedPlayable.displayString)
       currentPreparedUrl = ""
       currentPlayUrl = nextPreloadedUrl
+      os_log(.debug, "Preloaded - currentPlayUrl set to: %s", nextPreloadedUrl.prefix(80).description)
       playType = perloadedPlayType
       perloadedPlayType = nil
       activeStreamingBitrate = perloadedStreamingBitrate
@@ -475,10 +579,20 @@ class BackendAudioPlayer: NSObject {
           applyReplayGain()
           try await insertStreamPlayable(playable: playable, autoStartPlayback: self.shouldPlaybackStart)
           self.isPlaying = self.shouldPlaybackStart
-          if self.isAutoCachePlayedItems, !playable.isRadio,
-             let accountInfo = playable.account?.info {
+          
+          // Always download streamed songs to enable seeking
+          // Track as temporarily cached if auto-cache is disabled
+          if !playable.isRadio, let accountInfo = playable.account?.info {
             self.getPlayableDownloaderCB(accountInfo).download(object: playable)
+            
+            // Only track as temporary if auto-cache is disabled
+            // (if enabled, user wants to keep it permanently)
+            if !self.isAutoCachePlayedItems {
+              self.temporarilyCachedPlayable = playable
+              os_log(.debug, "Temporarily caching for seeking: %s", playable.displayString)
+            }
           }
+          
           self.responder?.notifyItemPreparationFinished()
         } catch {
           self.responder?.notifyErrorOccurred(error: error)
@@ -539,7 +653,8 @@ class BackendAudioPlayer: NSObject {
   private func insertCachedPlayable(
     playable: AbstractPlayable,
     queueType: BackendAudioQueueType = .play,
-    autoStartPlayback: Bool = true
+    autoStartPlayback: Bool = true,
+    seekTo: Double? = nil
   ) {
     guard let fileURL = cacheProxy.getFileURL(forPlayable: playable) else {
       return
@@ -553,7 +668,7 @@ class BackendAudioPlayer: NSObject {
       os_log(.default, "Insert Cache: %s (%s)", playable.displayString, fileURL.absoluteString)
     }
     if playable.isSong { userStatistics.playedSong(isPlayedFromCache: true) }
-    insert(playable: playable, withUrl: fileURL, queueType: queueType, autoStartPlayback: autoStartPlayback)
+    insert(playable: playable, withUrl: fileURL, queueType: queueType, autoStartPlayback: autoStartPlayback, seekTo: seekTo)
   }
 
   @MainActor
@@ -629,10 +744,11 @@ class BackendAudioPlayer: NSObject {
     withUrl url: URL,
     streamingMaxBitrate: StreamingMaxBitratePreference = .noLimit,
     queueType: BackendAudioQueueType,
-    autoStartPlayback: Bool = true
+    autoStartPlayback: Bool = true,
+    seekTo: Double? = nil
   ) {
     if queueType == .play {
-      seekTimeWhenStarted = nil
+      seekTimeWhenStarted = seekTo  // Set seek time instead of clearing (nil if not provided)
       player?.pause()
       audioSessionHandler.configureBackgroundPlayback()
     }
@@ -797,13 +913,34 @@ extension BackendAudioPlayer: AudioStreaming.AudioPlayerDelegate {
 
   @MainActor
   public func didStartPlaying(url: String) {
-    if currentPreparedUrl == url {
+    // Check for exact match
+    var isMatch = currentPreparedUrl == url
+    
+    // For file URLs, also check if the filenames match (URLs may have different encoding/format)
+    if !isMatch, currentPreparedUrl.hasPrefix("file://"), url.hasPrefix("file://") {
+      let preparedFilename = URL(string: currentPreparedUrl)?.lastPathComponent
+      let receivedFilename = URL(string: url)?.lastPathComponent
+      if let pf = preparedFilename, let rf = receivedFilename, pf == rf {
+        isMatch = true
+        os_log(.debug, "File URL match by filename: %s", pf)
+      }
+    }
+    
+    os_log(
+      .debug,
+      "didStartPlaying called - url: %s, currentPreparedUrl: %s, match: %s",
+      url.prefix(80).description,
+      currentPreparedUrl.prefix(80).description,
+      isMatch.description
+    )
+    if isMatch {
       if let sampleRate = player?.mainMixerNode.outputFormat(forBus: 0).sampleRate {
         audioAnalyzer.playing(sampleRate: Float(sampleRate))
       }
 
       currentPreparedUrl = ""
       currentPlayUrl = url
+      os_log(.debug, "currentPlayUrl set to: %s", url.prefix(80).description)
       if shouldPlaybackStart {
         continuePlay()
         audioAnalyzer.play()
@@ -813,8 +950,30 @@ extension BackendAudioPlayer: AudioStreaming.AudioPlayerDelegate {
       }
 
       if let seekTimeWhenStarted {
+        os_log(.debug, "Executing deferred seek to: %f", seekTimeWhenStarted)
         player?.seek(to: seekTimeWhenStarted)
         self.seekTimeWhenStarted = nil
+      }
+    } else {
+      os_log(.debug, "didStartPlaying: URL mismatch - currentPlayUrl NOT updated!")
+      
+      // Fallback: if we have a pending seek and both are file URLs, try to process anyway
+      // This handles cases where the URL format differs between what we set and what we receive
+      if currentPreparedUrl.hasPrefix("file://"), url.hasPrefix("file://") {
+        os_log(.debug, "Fallback: Processing file URL despite mismatch")
+        currentPreparedUrl = ""
+        currentPlayUrl = url
+        
+        if shouldPlaybackStart {
+          continuePlay()
+          audioAnalyzer.play()
+        }
+        
+        if let seekTimeWhenStarted {
+          os_log(.debug, "Fallback: Executing deferred seek to: %f", seekTimeWhenStarted)
+          player?.seek(to: seekTimeWhenStarted)
+          self.seekTimeWhenStarted = nil
+        }
       }
     }
   }

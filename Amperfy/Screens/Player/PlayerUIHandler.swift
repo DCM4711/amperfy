@@ -525,6 +525,7 @@ class PlayerUIHandler: NSObject {
       playTypeIcon.image = UIImage.cache
       displayBitrateInKbps = currentlyPlaying.bitrate / 1000
       formatText = getFormat(contentType: currentlyPlaying.fileContentType)
+      playTypeIcon.tintColor = .labelColor
     } else {
       playTypeIcon.image = UIImage.antenna
       let streamingBitrate = player.activeStreamingBitrate
@@ -550,11 +551,17 @@ class PlayerUIHandler: NSObject {
       } else {
         formatText = ""
       }
+      
+      // If streaming but song is now cached in background, show green antenna
+      if currentlyPlaying.isCached {
+        playTypeIcon.tintColor = UIColor.systemGreen
+      } else {
+        playTypeIcon.tintColor = .labelColor
+      }
     }
 
     audioInfoLabel
       .text = (displayBitrateInKbps > 0) ? "\(formatText) \(displayBitrateInKbps) kbps" :
       "\(formatText)"
-    playTypeIcon.tintColor = .labelColor
   }
 }
