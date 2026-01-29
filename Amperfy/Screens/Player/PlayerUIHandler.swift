@@ -261,7 +261,16 @@ class PlayerUIHandler: NSObject {
   ) {
     refreshArtwork(artworkImage: artworkImage)
     if let playableInfo = player.currentlyPlaying {
-      titleLabel.text = playableInfo.title
+      // Display track number in front of title for songs if there are multiple songs
+      // from the same album in the queue
+      let shouldShowTrackNumber = playableInfo.isSong && 
+                                   playableInfo.track > 0 && 
+                                   hasMultipleSongsFromSameAlbumInQueue(playableInfo)
+      if shouldShowTrackNumber {
+        titleLabel.text = "\(playableInfo.track). \(playableInfo.title)"
+      } else {
+        titleLabel.text = playableInfo.title
+      }
       albumLabel?.text = playableInfo.asSong?.album?.name ?? ""
       albumButton?.isEnabled = playableInfo.isSong
       albumContainerView?.isHidden = !playableInfo.isSong
@@ -278,6 +287,39 @@ class PlayerUIHandler: NSObject {
       albumContainerView?.isHidden = true
       artistLabel.text = ""
     }
+  }
+  
+  private func hasMultipleSongsFromSameAlbumInQueue(_ currentPlayable: AbstractPlayable) -> Bool {
+    guard let currentAlbum = currentPlayable.asSong?.album else { return false }
+    
+    // Count songs from the same album in all queues (including current song = 1)
+    var sameAlbumCount = 1
+    
+    // Check previous queue
+    for playable in player.getAllPrevQueueItems() {
+      if let song = playable.asSong, song.album == currentAlbum {
+        sameAlbumCount += 1
+        if sameAlbumCount > 1 { return true }
+      }
+    }
+    
+    // Check next queue
+    for playable in player.getAllNextQueueItems() {
+      if let song = playable.asSong, song.album == currentAlbum {
+        sameAlbumCount += 1
+        if sameAlbumCount > 1 { return true }
+      }
+    }
+    
+    // Check user queue
+    for playable in player.getAllUserQueueItems() {
+      if let song = playable.asSong, song.album == currentAlbum {
+        sameAlbumCount += 1
+        if sameAlbumCount > 1 { return true }
+      }
+    }
+    
+    return false
   }
 
   func refreshArtwork(artworkImage: LibraryEntityImage) {
