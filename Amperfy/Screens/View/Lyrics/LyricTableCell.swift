@@ -27,10 +27,10 @@ import UIKit
 
 private enum LyricsStyle {
   static let activeFontSize: CGFloat = 28
-  static let inactiveFontSize: CGFloat = 24
+  static let inactiveFontSize: CGFloat = 28
   static let activeScale: CGFloat = 1.0
-  static let inactiveScale: CGFloat = 0.92
-  static let inactiveOpacity: CGFloat = 0.4
+  static let inactiveScale: CGFloat = 1.0
+  static let inactiveOpacity: CGFloat = 0.3
   static let animationDuration: TimeInterval = 0.7
 }
 
@@ -72,7 +72,7 @@ class LyricTableCellModel {
       string: lyric.value,
       attributes:
       [
-        .font: UIFont.systemFont(ofSize: LyricsStyle.inactiveFontSize, weight: .semibold),
+        .font: UIFont.systemFont(ofSize: LyricsStyle.inactiveFontSize, weight: .bold),
         .foregroundColor: UIColor.customDarkLabel.withAlphaComponent(LyricsStyle.inactiveOpacity),
       ]
     )
