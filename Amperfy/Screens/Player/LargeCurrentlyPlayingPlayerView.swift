@@ -440,13 +440,13 @@ class LargeCurrentlyPlayingPlayerView: UIView {
   }
 
   private func hideLyrics() {
-    lyricsView?.clear()
-    lyricsView?.isHidden = true
-    
-    // Fade out static lyrics
+    // Fade out both lyrics views
     UIView.animate(withDuration: 0.3) {
+      self.lyricsView?.alpha = 0
       self.staticLyricsScrollView?.alpha = 0
     } completion: { _ in
+      self.lyricsView?.clear()
+      self.lyricsView?.isHidden = true
       self.staticLyricsScrollView?.isHidden = true
     }
   }
@@ -506,7 +506,17 @@ class LargeCurrentlyPlayingPlayerView: UIView {
         lyrics: structuredLyrics,
         scrollAnimation: appDelegate.storage.settings.user.isLyricsSmoothScrolling
       )
-      lyricsView?.isHidden = false
+      
+      // Only fade in if not already visible
+      if lyricsView?.isHidden == true || lyricsView?.alpha == 0 {
+        lyricsView?.alpha = 0
+        lyricsView?.isHidden = false
+        UIView.animate(withDuration: 0.3) {
+          self.lyricsView?.alpha = 1
+        }
+      } else {
+        lyricsView?.isHidden = false
+      }
     }
   }
 
