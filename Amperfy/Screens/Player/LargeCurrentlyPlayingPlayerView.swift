@@ -26,6 +26,31 @@ import UIKit
 
 import SwiftUI
 
+// MARK: - MaskedScrollView
+
+/// A UIScrollView subclass that applies a gradient mask at the top and bottom edges,
+/// exactly like LyricsView does.
+class MaskedScrollView: UIScrollView {
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    layer.mask = createVisibilityMask()
+    layer.masksToBounds = true
+  }
+  
+  private func createVisibilityMask() -> CAGradientLayer {
+    let mask = CAGradientLayer()
+    mask.frame = bounds
+    mask.colors = [
+      UIColor.white.withAlphaComponent(0).cgColor,
+      UIColor.white.cgColor,
+      UIColor.white.cgColor,
+      UIColor.white.withAlphaComponent(0).cgColor,
+    ]
+    mask.locations = [0, 0.15, 0.85, 1]
+    return mask
+  }
+}
+
 // MARK: - LargeDisplayElement
 
 enum LargeDisplayElement {
@@ -127,6 +152,9 @@ class LargeCurrentlyPlayingPlayerView: UIView {
 
   private var rootView: PopupPlayerVC?
   private var lyricsView: LyricsView?
+  private var staticLyricsScrollView: MaskedScrollView?  // Scrollable container for static lyrics
+  private var staticLyricsLabel: UILabel?  // Simple label for static/unsynced lyrics
+  private var currentStaticLyricsText: String?  // Track current lyrics to detect new lyrics
   private var visualizerHostingView: SwiftUIContentView?
   private var displayElement: LargeDisplayElement = .artwork
   private var ratingView: RatingView?
@@ -163,6 +191,7 @@ class LargeCurrentlyPlayingPlayerView: UIView {
     upperContainerView.layoutIfNeeded()
 
     lyricsView?.frame = upperContainerView.bounds
+    staticLyricsScrollView?.frame = upperContainerView.bounds
     visualizerHostingView?.hostingController?.view.frame = upperContainerView.bounds
   }
 
@@ -177,6 +206,23 @@ class LargeCurrentlyPlayingPlayerView: UIView {
     let lyricsTap = UITapGestureRecognizer(target: self, action: #selector(handleLyricsTap(_:)))
     lyricsView!.addGestureRecognizer(lyricsTap)
     upperContainerView.addSubview(lyricsView!)
+    
+    // Scrollable view for static/unsynced lyrics - no table view animations
+    staticLyricsScrollView = MaskedScrollView()
+    staticLyricsScrollView!.frame = upperContainerView.bounds
+    staticLyricsScrollView!.isHidden = true
+    staticLyricsScrollView!.showsVerticalScrollIndicator = false
+    staticLyricsScrollView!.showsHorizontalScrollIndicator = false
+    let staticLyricsTap = UITapGestureRecognizer(target: self, action: #selector(handleLyricsTap(_:)))
+    staticLyricsScrollView!.addGestureRecognizer(staticLyricsTap)
+    upperContainerView.addSubview(staticLyricsScrollView!)
+    
+    staticLyricsLabel = UILabel()
+    staticLyricsLabel!.numberOfLines = 0
+    staticLyricsLabel!.textAlignment = .center
+    staticLyricsLabel!.textColor = .white
+    staticLyricsLabel!.font = UIFont.systemFont(ofSize: 24, weight: .semibold)
+    staticLyricsScrollView!.addSubview(staticLyricsLabel!)
 
     visualizerHostingView = SwiftUIContentView()
     visualizerHostingView!.hostingController?.view.frame = upperContainerView.bounds
@@ -396,6 +442,13 @@ class LargeCurrentlyPlayingPlayerView: UIView {
   private func hideLyrics() {
     lyricsView?.clear()
     lyricsView?.isHidden = true
+    
+    // Fade out static lyrics
+    UIView.animate(withDuration: 0.3) {
+      self.staticLyricsScrollView?.alpha = 0
+    } completion: { _ in
+      self.staticLyricsScrollView?.isHidden = true
+    }
   }
 
   private func showLyricsAreNotAvailable() {
@@ -409,15 +462,52 @@ class LargeCurrentlyPlayingPlayerView: UIView {
   }
 
   private func showLyrics(structuredLyrics: StructuredLyrics) {
-    lyricsView?.display(
-      lyrics: structuredLyrics,
-      scrollAnimation: appDelegate.storage.settings.user.isLyricsSmoothScrolling
-    )
-    // For unsynced lyrics, highlight all lines since there's no timing information
+    // For unsynced/static lyrics, use simple scrollable label
     if !structuredLyrics.synced {
-      lyricsView?.highlightAllLyrics()
+      // Hide the table-based lyrics view
+      lyricsView?.isHidden = true
+      
+      // Combine all lyrics lines into one text, with padding at the top
+      let lyricsText = "\n\n\n\n\n" + structuredLyrics.line.map { $0.value }.joined(separator: "\n\n")
+      
+      // Check if these are NEW lyrics (different from current)
+      let isNewLyrics = (lyricsText != currentStaticLyricsText)
+      currentStaticLyricsText = lyricsText
+      
+      staticLyricsLabel?.text = lyricsText
+      
+      // Size the label to fit the text
+      let maxWidth = upperContainerView.bounds.width - 40  // 20px padding on each side
+      let labelSize = staticLyricsLabel?.sizeThatFits(CGSize(width: maxWidth, height: .greatestFiniteMagnitude)) ?? .zero
+      staticLyricsLabel?.frame = CGRect(x: 20, y: 20, width: maxWidth, height: labelSize.height)
+      
+      // Set scroll view content size
+      staticLyricsScrollView?.contentSize = CGSize(width: upperContainerView.bounds.width, height: labelSize.height + 40)
+      
+      // Only scroll to beginning for NEW lyrics, not when re-displaying same lyrics
+      if isNewLyrics {
+        staticLyricsScrollView?.contentOffset = .zero
+      }
+      
+      // Only fade in if not already visible
+      if staticLyricsScrollView?.isHidden == true || staticLyricsScrollView?.alpha == 0 {
+        staticLyricsScrollView?.alpha = 0
+        staticLyricsScrollView?.isHidden = false
+        UIView.animate(withDuration: 0.3) {
+          self.staticLyricsScrollView?.alpha = 1
+        }
+      }
+    } else {
+      // Hide static scroll view
+      staticLyricsScrollView?.isHidden = true
+      
+      // For synced lyrics, use normal display
+      lyricsView?.display(
+        lyrics: structuredLyrics,
+        scrollAnimation: appDelegate.storage.settings.user.isLyricsSmoothScrolling
+      )
+      lyricsView?.isHidden = false
     }
-    lyricsView?.isHidden = false
   }
 
   func refresh() {

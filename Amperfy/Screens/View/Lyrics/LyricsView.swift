@@ -32,6 +32,7 @@ class LyricsView: UITableView, UITableViewDataSource, UITableViewDelegate {
   private var hasLastLyricsLineAlreadyDisplayedOnce = false
   private var scrollAnimation = true
   private var isFirstScroll = true
+  private var isUnsyncedLyrics = false
   
   // Interlude overlay
   private var interludeOverlay: InterludeOverlayView?
@@ -88,6 +89,7 @@ class LyricsView: UITableView, UITableViewDataSource, UITableViewDelegate {
   public func display(lyrics: StructuredLyrics, scrollAnimation: Bool) {
     self.lyrics = lyrics
     self.scrollAnimation = scrollAnimation
+    self.isUnsyncedLyrics = !lyrics.synced
     
     // Reset interlude state
     isShowingInterlude = false
@@ -101,15 +103,21 @@ class LyricsView: UITableView, UITableViewDataSource, UITableViewDelegate {
       addSubview(overlay)
     }
     
-    reloadViewModels()
-    
-    // Position overlay at the top of content after reload
-    positionInterludeOverlay()
-    
-    // Scroll to top after layout is complete
-    layoutIfNeeded()
-    DispatchQueue.main.async {
-      self.setContentOffset(CGPoint(x: 0, y: -self.contentInset.top), animated: false)
+    // For static lyrics, disable all automatic scroll adjustments
+    if isUnsyncedLyrics {
+      UIView.performWithoutAnimation {
+        self.reloadViewModels()
+        self.positionInterludeOverlay()
+        self.layoutIfNeeded()
+        self.contentOffset = CGPoint(x: 0, y: -self.contentInset.top)
+      }
+    } else {
+      reloadViewModels()
+      positionInterludeOverlay()
+      layoutIfNeeded()
+      DispatchQueue.main.async {
+        self.setContentOffset(CGPoint(x: 0, y: -self.contentInset.top), animated: false)
+      }
     }
   }
   
