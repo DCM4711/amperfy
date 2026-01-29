@@ -198,10 +198,8 @@ class PopupPlayerVC: UIViewController, UIScrollViewDelegate {
     controlView?.refreshView()
     refresh()
     
-    // Set initial artwork scale based on current play state (no animation on appear)
-    largeCurrentlyPlayingView?.setInitialArtworkScale()
-    
     // Workaround: Prime the player if this is a resume scenario after app restart
+    // This must happen before setting artwork scale, and scale is set after priming completes
     primePlayerIfNeeded()
   }
   
@@ -210,21 +208,35 @@ class PopupPlayerVC: UIViewController, UIScrollViewDelegate {
   /// we simulate a quick play-pause cycle to "prime" the audio system.
   private func primePlayerIfNeeded() {
     // Only do this once per app session
-    guard !Self.hasPlayerBeenPrimedThisSession else { return }
+    guard !Self.hasPlayerBeenPrimedThisSession else {
+      // No priming needed, just set initial artwork scale
+      largeCurrentlyPlayingView?.setInitialArtworkScale()
+      return
+    }
     
     // Check if there's a song with saved progress (meaning it was playing before app closed)
     guard let currentPlayable = player.currentlyPlaying,
           currentPlayable.playProgress > 0,
-          !player.isPlaying else { return }
+          !player.isPlaying else {
+      // No priming needed, just set initial artwork scale
+      largeCurrentlyPlayingView?.setInitialArtworkScale()
+      return
+    }
     
     // Mark as primed so we don't do this again
     Self.hasPlayerBeenPrimedThisSession = true
+    
+    // Disable artwork scale animation during priming
+    largeCurrentlyPlayingView?.isArtworkScaleAnimationEnabled = false
     
     // Simulate play -> wait 200ms -> pause to prime the audio system
     player.play()
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
       self?.player.pause()
       self?.controlView?.refreshView()
+      // Re-enable artwork scale animation and set initial scale
+      self?.largeCurrentlyPlayingView?.isArtworkScaleAnimationEnabled = true
+      self?.largeCurrentlyPlayingView?.setInitialArtworkScale()
     }
   }
 

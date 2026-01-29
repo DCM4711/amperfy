@@ -158,6 +158,9 @@ class LargeCurrentlyPlayingPlayerView: UIView {
   private var visualizerHostingView: SwiftUIContentView?
   private var displayElement: LargeDisplayElement = .artwork
   private var ratingView: RatingView?
+  
+  /// Flag to temporarily disable artwork scale animation (e.g., during player priming)
+  var isArtworkScaleAnimationEnabled: Bool = true
 
   @IBOutlet
   weak var upperContainerView: UIView!
@@ -337,11 +340,15 @@ class LargeCurrentlyPlayingPlayerView: UIView {
   
   func onPlayerPause() {
     lyricsView?.onPause()
-    updateArtworkScaleForCurrentState(animated: true)
+    if isArtworkScaleAnimationEnabled {
+      updateArtworkScaleForCurrentState(animated: true)
+    }
   }
   
   func onPlayerPlay() {
-    updateArtworkScaleForCurrentState(animated: true)
+    if isArtworkScaleAnimationEnabled {
+      updateArtworkScaleForCurrentState(animated: true)
+    }
   }
   
   func setInitialArtworkScale() {
