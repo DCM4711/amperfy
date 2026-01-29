@@ -272,21 +272,33 @@ class LyricsView: UITableView, UITableViewDataSource, UITableViewDelegate {
     hideInterludeInstantly()
 
     guard let indexOfNextLine = lyrics.line.firstIndex(where: { $0.startTime >= time }) else {
-      // Past all lyrics
+      // Past all lyrics - highlight the last line
+      let lastLineIndex = lyricModels.count - 1
+      
       if !hasLastLyricsLineAlreadyDisplayedOnce {
         scrollToRow(
-          at: IndexPath(row: lyricModels.count - 1, section: 0),
+          at: IndexPath(row: lastLineIndex, section: 0),
           at: .middle,
           animated: shouldAnimate
         )
         hasLastLyricsLineAlreadyDisplayedOnce = true
       }
-      if let lastIndex = lastIndex,
-         let lastIndexModel = lyricModels.object(at: lastIndex) {
-        lastIndexModel.isActiveLine = false
-        reconfigureRows(at: [IndexPath(row: lastIndex, section: 0)])
+      
+      // Deactivate previous line if different from last line
+      if let prevIndex = lastIndex, prevIndex != lastLineIndex,
+         let prevModel = lyricModels.object(at: prevIndex) {
+        prevModel.isActiveLine = false
+        reconfigureRows(at: [IndexPath(row: prevIndex, section: 0)])
       }
-      lastIndex = nil
+      
+      // Activate the last line
+      if let lastLineModel = lyricModels.object(at: lastLineIndex) {
+        lastLineModel.isActiveLine = true
+        if lastIndex != lastLineIndex {
+          reconfigureRows(at: [IndexPath(row: lastLineIndex, section: 0)])
+        }
+      }
+      lastIndex = lastLineIndex
       return
     }
 
