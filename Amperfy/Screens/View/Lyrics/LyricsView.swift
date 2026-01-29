@@ -125,8 +125,8 @@ class LyricsView: UITableView, UITableViewDataSource, UITableViewDelegate {
     guard let overlay = interludeOverlay else { return }
     let overlayWidth: CGFloat = bounds.width
     let overlayHeight: CGFloat = 60
-    // Position at center of visible area when scrolled to top (accounting for content inset)
-    let yPosition = -contentInset.top + (frame.height - overlayHeight) / 2
+    // Position higher in the visible area to increase distance from first lyric line
+    let yPosition = -contentInset.top + (frame.height - overlayHeight) / 2 - 40
     overlay.frame = CGRect(x: 0, y: yPosition, width: overlayWidth, height: overlayHeight)
   }
 
