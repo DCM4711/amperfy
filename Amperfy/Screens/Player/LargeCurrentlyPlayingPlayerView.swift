@@ -337,6 +337,15 @@ class LargeCurrentlyPlayingPlayerView: UIView {
   
   func onPlayerPause() {
     lyricsView?.onPause()
+    updateArtworkScaleForCurrentState(animated: true)
+  }
+  
+  func onPlayerPlay() {
+    updateArtworkScaleForCurrentState(animated: true)
+  }
+  
+  func setInitialArtworkScale() {
+    updateArtworkScaleForCurrentState(animated: false)
   }
 
   func initializeLyrics() {
@@ -535,6 +544,37 @@ class LargeCurrentlyPlayingPlayerView: UIView {
     optionsButton.isHidden = true
     refreshRating()
     display(element: displayElement)
+  }
+  
+  private func updateArtworkScaleForCurrentState(animated: Bool) {
+    let isPlaying = appDelegate.player.isPlaying
+    
+    // Calculate scale factor to match details container width (with 16pt margins on each side)
+    let targetWidth = bounds.width - 32  // Full width minus margins
+    let currentWidth = artworkImage.bounds.width
+    let currentHeight = artworkImage.bounds.height
+    
+    guard currentWidth > 0, currentHeight > 0 else { return }
+    
+    let playingScale = targetWidth / currentWidth
+    let targetScale = isPlaying ? playingScale : 1.0
+    
+    // To keep the bottom edge fixed while scaling from center anchor:
+    // When scaling up, the image grows in all directions from center
+    // We need to translate up by half the height difference to keep bottom edge fixed
+    let heightDifference = currentHeight * (targetScale - 1.0)
+    let yTranslation = -heightDifference / 2.0
+    
+    let targetTransform = CGAffineTransform(scaleX: targetScale, y: targetScale)
+      .translatedBy(x: 0, y: yTranslation / targetScale)
+    
+    if animated {
+      UIView.animate(withDuration: 0.4, delay: 0, options: [.curveEaseInOut]) {
+        self.artworkImage.transform = targetTransform
+      }
+    } else {
+      artworkImage.transform = targetTransform
+    }
   }
 
   func refreshRating() {

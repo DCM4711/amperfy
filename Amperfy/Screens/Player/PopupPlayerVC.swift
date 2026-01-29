@@ -198,6 +198,9 @@ class PopupPlayerVC: UIViewController, UIScrollViewDelegate {
     controlView?.refreshView()
     refresh()
     
+    // Set initial artwork scale based on current play state (no animation on appear)
+    largeCurrentlyPlayingView?.setInitialArtworkScale()
+    
     // Workaround: Prime the player if this is a resume scenario after app restart
     primePlayerIfNeeded()
   }
@@ -396,6 +399,7 @@ extension PopupPlayerVC: MusicPlayable {
   func didStartPlaying() {
     reloadData()
     refresh()
+    largeCurrentlyPlayingView?.onPlayerPlay()
   }
 
   func didStopPlaying() {
