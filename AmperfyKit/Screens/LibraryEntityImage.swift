@@ -108,6 +108,8 @@ public class LibraryEntityImage: RoundedImage {
   }
 
   public func display(entity: AbstractLibraryEntity) {
+    // Skip refresh if displaying the same entity (prevents placeholder flash)
+    guard self.entity != entity else { return }
     self.entity = entity
     backupArtworkType = entity.getDefaultArtworkType()
     refresh()
