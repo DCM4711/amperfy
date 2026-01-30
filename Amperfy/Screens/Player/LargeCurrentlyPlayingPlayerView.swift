@@ -182,6 +182,8 @@ class LargeCurrentlyPlayingPlayerView: UIView {
   weak var favoriteButton: UIButton!
   @IBOutlet
   weak var optionsButton: UIButton!
+  
+  private var infoButton: UIButton!
 
   required init?(coder aDecoder: NSCoder) {
     super.init(coder: aDecoder)
@@ -238,10 +240,48 @@ class LargeCurrentlyPlayingPlayerView: UIView {
     }
 
     setupRatingView()
+    setupInfoButton()
     addSwipeGesturesToArtwork()
 
     displayElement = getDisplayElementBasedOnConfig()
     refresh()
+  }
+  
+  private func setupInfoButton() {
+    infoButton = UIButton(type: .system)
+    infoButton.translatesAutoresizingMaskIntoConstraints = false
+    
+    let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
+    let infoImage = UIImage(systemName: "info.circle", withConfiguration: config)
+    infoButton.setImage(infoImage, for: .normal)
+    infoButton.tintColor = .white
+    
+    infoButton.addTarget(self, action: #selector(infoButtonPressed), for: .touchUpInside)
+    
+    // Add to self, positioned left of rating stars, aligned with title text
+    addSubview(infoButton)
+    
+    NSLayoutConstraint.activate([
+      infoButton.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+      infoButton.centerYAnchor.constraint(equalTo: ratingView!.centerYAnchor),
+      infoButton.widthAnchor.constraint(equalToConstant: 30),
+      infoButton.heightAnchor.constraint(equalToConstant: 30),
+    ])
+  }
+  
+  @objc
+  private func infoButtonPressed() {
+    guard let playable = rootView?.player.currentlyPlaying else { return }
+    let metadataVC = SongMetadataVC()
+    metadataVC.playable = playable
+    
+    let navController = UINavigationController(rootViewController: metadataVC)
+    navController.modalPresentationStyle = .pageSheet
+    if let sheet = navController.sheetPresentationController {
+      sheet.detents = [.medium(), .large()]
+      sheet.prefersGrabberVisible = true
+    }
+    rootView?.present(navController, animated: true)
   }
 
   private func setupRatingView() {
@@ -319,6 +359,7 @@ class LargeCurrentlyPlayingPlayerView: UIView {
       appDelegate.storage.settings.user.isPlayerVisualizerDisplayed = false
       display(element: .lyrics)
       ratingView?.isHidden = true
+      infoButton?.isHidden = true
     }
   }
 
@@ -595,8 +636,9 @@ class LargeCurrentlyPlayingPlayerView: UIView {
     let playable = rootView?.player.currentlyPlaying
     let song = playable?.asSong
     
-    // Keep rating hidden when lyrics are displayed
+    // Keep rating and info button hidden when lyrics are displayed
     ratingView?.isHidden = (displayElement == .lyrics)
+    infoButton?.isHidden = (displayElement == .lyrics)
     
     // Set rating (only for songs)
     if let song = song {
