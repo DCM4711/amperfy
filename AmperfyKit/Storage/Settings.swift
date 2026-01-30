@@ -201,6 +201,12 @@ public struct UserSettings: Sendable, Codable {
     set { _isReplayGainEnabled = newValue }
   }
 
+  private var _replayGainPreamp: Int = 0
+  public var replayGainPreamp: Int {
+    get { _replayGainPreamp }
+    set { _replayGainPreamp = max(-8, min(8, newValue)) }
+  }
+
   private var _playerVolume: Float = 1.0
   public var playerVolume: Float {
     get {

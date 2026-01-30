@@ -230,6 +230,7 @@ public protocol PlayerFacade {
   func updateEqualizerEnabled(isEnabled: Bool)
   func updateEqualizerSetting(eqSetting: EqualizerSetting)
   func updateReplayGainEnabled(isEnabled: Bool)
+  func updateReplayGainPreamp(preamp: Int)
 }
 
 extension PlayerFacade {
@@ -511,6 +512,10 @@ class PlayerFacadeImpl: PlayerFacade {
 
   public func updateReplayGainEnabled(isEnabled: Bool) {
     backendAudioPlayer.updateReplayGainEnabled(isEnabled: isEnabled)
+  }
+  
+  public func updateReplayGainPreamp(preamp: Int) {
+    backendAudioPlayer.updateReplayGainPreamp(preamp: preamp)
   }
 
   func logout(account: Account) {

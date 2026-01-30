@@ -199,6 +199,12 @@ class SettingsHostVC: UIViewController {
       self.appDelegate.storage.settings.user.isReplayGainEnabled = newValue
       self.appDelegate.player.updateReplayGainEnabled(isEnabled: newValue)
     }))
+    
+    settings.replayGainPreamp = appDelegate.storage.settings.user.replayGainPreamp
+    changesAgent.append(settings.$replayGainPreamp.sink(receiveValue: { newValue in
+      self.appDelegate.storage.settings.user.replayGainPreamp = newValue
+      self.appDelegate.player.updateReplayGainPreamp(preamp: newValue)
+    }))
 
     settings.isEqualizerEnabled = appDelegate.storage.settings.user.isEqualizerEnabled
     changesAgent.append(settings.$isEqualizerEnabled.sink(receiveValue: { newValue in

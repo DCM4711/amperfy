@@ -124,6 +124,7 @@ class BackendAudioPlayer: NSObject {
   // ReplayGain Settings
   private var isReplayGainEnabled: Bool = true
   private var currentReplayGainValue: Float = 0.0 // ReplayGain in dB
+  private var replayGainPreamp: Int = 0 // Preamp in dB (-7 to +7)
   // EQ Settings
   private var equalizerVolumeCompensation: Float = 1.0
   private var isEqualizerEnabled: Bool = true
@@ -870,6 +871,11 @@ class BackendAudioPlayer: NSObject {
     isReplayGainEnabled = isEnabled
     applyReplayGain()
   }
+  
+  func updateReplayGainPreamp(preamp: Int) {
+    replayGainPreamp = preamp
+    applyReplayGain()
+  }
 
   private func applyReplayGain() {
     guard let replayGain = replayGainNode else { return }
@@ -877,13 +883,17 @@ class BackendAudioPlayer: NSObject {
     let eqCompensation = isEqualizerEnabled ? equalizerVolumeCompensation : 1.0
 
     if isReplayGainEnabled, currentReplayGainValue != 0.0 {
+      // Apply track gain + preamp offset
+      let totalGain = currentReplayGainValue + Float(replayGainPreamp)
       // Convert dB to linear scale: gain = pow(10, dB / 20)
-      let linearGain = pow(10.0, currentReplayGainValue / 20.0)
+      let linearGain = pow(10.0, totalGain / 20.0)
       replayGain.outputVolume = linearGain * eqCompensation
       os_log(
         .debug,
-        "ReplayGain: %.2f dB → %.3f linear gain (EQ Compensation: %.2f)",
+        "ReplayGain: %.2f dB + %d dB preamp = %.2f dB → %.3f linear gain (EQ Compensation: %.2f)",
         currentReplayGainValue,
+        replayGainPreamp,
+        totalGain,
         linearGain,
         eqCompensation
       )

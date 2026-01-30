@@ -609,8 +609,11 @@ class PlayerUIHandler: NSObject {
     let isReplayGainEnabled = appDelegate.storage.settings.user.isReplayGainEnabled
     let replayGainValue = currentlyPlaying.replayGainTrackGain
     if isReplayGainEnabled && replayGainValue != 0 {
-      let sign = replayGainValue >= 0 ? "+" : ""
-      audioInfoText += String(format: ", %@%.1f dB", sign, replayGainValue)
+      // Include preamp in the displayed value
+      let preamp = Float(appDelegate.storage.settings.user.replayGainPreamp)
+      let totalGain = replayGainValue + preamp
+      let sign = totalGain >= 0 ? "+" : ""
+      audioInfoText += String(format: ", %@%.1f dB", sign, totalGain)
     }
     
     audioInfoLabel.text = audioInfoText

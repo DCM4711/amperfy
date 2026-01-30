@@ -67,6 +67,16 @@ struct PlayerSettingsView: View {
   private func updateCacheFormat(_ format: CacheTranscodingFormatPreference) {
     settings.cacheTranscodingFormatPreference = format
   }
+  
+  private func preampDisplayString(_ value: Int) -> String {
+    if value == 0 {
+      return "0 dB"
+    } else if value > 0 {
+      return "+\(value) dB"
+    } else {
+      return "\(value) dB"
+    }
+  }
 
   var body: some View {
     ZStack {
@@ -83,6 +93,17 @@ struct PlayerSettingsView: View {
                 }
               )
             )
+            if settings.isReplayGainEnabled {
+              SettingsRow(title: "Preamp") {
+                Menu(preampDisplayString(settings.replayGainPreamp)) {
+                  ForEach((-8...8).reversed(), id: \.self) { value in
+                    Button(preampDisplayString(value)) {
+                      settings.replayGainPreamp = value
+                    }
+                  }
+                }
+              }
+            }
           },
           footer: "Automatically normalize track volume based on replay gain information for consistent loudness."
         )
