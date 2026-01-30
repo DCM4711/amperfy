@@ -602,8 +602,16 @@ class PlayerUIHandler: NSObject {
       }
     }
 
-    audioInfoLabel
-      .text = (displayBitrateInKbps > 0) ? "\(formatText) \(displayBitrateInKbps) kbps" :
-      "\(formatText)"
+    // Build the audio info text
+    var audioInfoText = (displayBitrateInKbps > 0) ? "\(formatText) \(displayBitrateInKbps) kbps" : "\(formatText)"
+    
+    // Add ReplayGain indicator if RG is enabled and song has RG data
+    let isReplayGainEnabled = appDelegate.storage.settings.user.isReplayGainEnabled
+    let hasReplayGainData = currentlyPlaying.replayGainTrackGain != 0
+    if isReplayGainEnabled && hasReplayGainData {
+      audioInfoText += ", RG"
+    }
+    
+    audioInfoLabel.text = audioInfoText
   }
 }
