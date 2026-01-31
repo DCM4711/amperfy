@@ -77,9 +77,15 @@ class SongMetadataVC: UIViewController {
       if let artist = song.artist {
         generalRows.append(("Artist", artist.name))
       }
+      
+      // Album Artist (from album's artist, if different from song artist)
       if let album = song.album {
         generalRows.append(("Album", album.name))
+        if let albumArtist = album.artist, albumArtist.name != song.artist?.name {
+          generalRows.append(("Album Artist", albumArtist.name))
+        }
       }
+      
       if let genre = song.genre {
         generalRows.append(("Genre", genre.name))
       }
@@ -104,6 +110,11 @@ class SongMetadataVC: UIViewController {
     if let song = playable.asSong {
       generalRows.append(("Rating", song.rating > 0 ? "\(song.rating) / 5" : "Not rated"))
       generalRows.append(("Favorite", song.isFavorite ? "Yes" : "No"))
+      
+      // Playcount
+      if song.playCount > 0 {
+        generalRows.append(("Play Count", "\(song.playCount)"))
+      }
     }
     
     addSection(title: "General", rows: generalRows)
@@ -156,15 +167,35 @@ class SongMetadataVC: UIViewController {
       addSection(title: "ReplayGain", rows: replayGainRows)
     }
     
-    // Cache Section
-    var cacheRows: [(String, String)] = []
-    cacheRows.append(("Cached", playable.isCached ? "Yes" : "No"))
+    // Download Section - always shown
+    var downloadRows: [(String, String)] = []
     
-    if playable.isCached, let transcodedType = playable.contentTypeTranscoded {
-      cacheRows.append(("Cached Format", transcodedType))
+    // Check if the song was intentionally downloaded by user
+    // A song is user-downloaded if:
+    // 1. It has a completed Download object, AND
+    // 2. Its ID is NOT in the temporary cache list (which tracks songs cached only for scrubbing)
+    var isUserDownloaded = false
+    if let song = playable.asSong,
+       let downloadMO = song.managedObject.download {
+      let download = Download(managedObject: downloadMO)
+      if download.isFinishedSuccessfully {
+        // Check if this song is in the temporary cache list
+        let temporaryCacheKey = "temporarilyCachedPlayableIDs"
+        let temporarilyCachedIDs = UserDefaults.standard.stringArray(forKey: temporaryCacheKey) ?? []
+        let isTemporarilyCached = temporarilyCachedIDs.contains(playable.id)
+        
+        // Only mark as user-downloaded if NOT in temporary cache list
+        isUserDownloaded = !isTemporarilyCached
+      }
     }
     
-    addSection(title: "Cache", rows: cacheRows)
+    downloadRows.append(("Downloaded", isUserDownloaded ? "Yes" : "No"))
+    
+    if isUserDownloaded, let transcodedType = playable.contentTypeTranscoded {
+      downloadRows.append(("Downloaded Format", transcodedType))
+    }
+    
+    addSection(title: "Download", rows: downloadRows)
   }
   
   private func addSection(title: String, rows: [(String, String)]) {
