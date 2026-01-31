@@ -563,12 +563,27 @@ class PlayerUIHandler: NSObject {
       return contentFormatText
     }
 
+    // Check if this song is only temporarily cached for scrubbing (not user-downloaded)
+    let temporaryCacheKey = "temporarilyCachedPlayableIDs"
+    let temporarilyCachedIDs = UserDefaults.standard.stringArray(forKey: temporaryCacheKey) ?? []
+    let isTemporarilyCached = temporarilyCachedIDs.contains(currentlyPlaying.id)
+    
     if playType == .cache {
-      playTypeIcon.image = UIImage.cache
+      // Playing from cache - get bitrate and format from cached file
       displayBitrateInKbps = currentlyPlaying.bitrate / 1000
       formatText = getFormat(contentType: currentlyPlaying.fileContentType)
-      playTypeIcon.tintColor = .labelColor
+      
+      if isTemporarilyCached {
+        // Temporarily cached for scrubbing - show green antenna
+        playTypeIcon.image = UIImage.antenna
+        playTypeIcon.tintColor = UIColor.systemGreen
+      } else {
+        // User-downloaded - show downloaded icon
+        playTypeIcon.image = UIImage.cache
+        playTypeIcon.tintColor = .labelColor
+      }
     } else {
+      // Streaming
       playTypeIcon.image = UIImage.antenna
       let streamingBitrate = player.activeStreamingBitrate
       if let streamingBitrate {
@@ -594,7 +609,7 @@ class PlayerUIHandler: NSObject {
         formatText = ""
       }
       
-      // If streaming but song is now cached in background, show green antenna
+      // If streaming but song is now cached (temporarily or in background), show green antenna
       if currentlyPlaying.isCached {
         playTypeIcon.tintColor = UIColor.systemGreen
       } else {

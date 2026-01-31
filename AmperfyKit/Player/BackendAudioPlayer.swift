@@ -275,9 +275,17 @@ class BackendAudioPlayer: NSObject {
           Task { @MainActor in
             do {
               try await insertStreamPlayable(playable: nextPreloadedPlayable, queueType: .queue)
-              if self.isAutoCachePlayedItems, nextPreloadedPlayable.isDownloadAvailable,
+              
+              // Always download streamed songs to enable seeking
+              if !nextPreloadedPlayable.isRadio, nextPreloadedPlayable.isDownloadAvailable,
                  let accountInfo = nextPreloadedPlayable.account?.info {
                 self.getPlayableDownloaderCB(accountInfo).download(object: nextPreloadedPlayable)
+                
+                // Track as temporarily cached if auto-cache is disabled
+                if !self.isAutoCachePlayedItems {
+                  self.addToTemporaryCacheList(playableID: nextPreloadedPlayable.id)
+                  os_log(.debug, "Temporarily caching preloaded song for seeking: %s", nextPreloadedPlayable.displayString)
+                }
               }
             } catch {
               self.nextPreloadedPlayable = nil
