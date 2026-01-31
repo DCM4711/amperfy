@@ -21,273 +21,260 @@
 import AmperfyKit
 import UIKit
 
-// MARK: - MetadataRow
-
-struct MetadataRow {
-  let label: String
-  let value: String
-}
-
-// MARK: - MetadataSection
-
-struct MetadataSection {
-  let title: String
-  let rows: [MetadataRow]
-}
-
 // MARK: - SongMetadataVC
 
 class SongMetadataVC: UIViewController {
   var playable: AbstractPlayable?
   
-  private lazy var tableView: UITableView = {
-    let table = UITableView(frame: .zero, style: .insetGrouped)
-    table.translatesAutoresizingMaskIntoConstraints = false
-    table.delegate = self
-    table.dataSource = self
-    table.register(MetadataCell.self, forCellReuseIdentifier: MetadataCell.identifier)
-    return table
-  }()
-  
-  private var sections: [MetadataSection] = []
+  private let scrollView = UIScrollView()
+  private let stackView = UIStackView()
   
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    view.backgroundColor = .systemBackground
+    view.backgroundColor = .systemGroupedBackground
     
     setupNavigationBar()
-    setupTableView()
-    buildMetadataSections()
+    setupScrollView()
+    buildMetadataContent()
   }
   
   private func setupNavigationBar() {
     title = "Song Info"
   }
   
-  private func setupTableView() {
-    view.addSubview(tableView)
+  private func setupScrollView() {
+    scrollView.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(scrollView)
+    
+    stackView.translatesAutoresizingMaskIntoConstraints = false
+    stackView.axis = .vertical
+    stackView.spacing = 0
+    scrollView.addSubview(stackView)
     
     NSLayoutConstraint.activate([
-      tableView.topAnchor.constraint(equalTo: view.topAnchor),
-      tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-      tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-      tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+      scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+      scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+      scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+      
+      stackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 20),
+      stackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 16),
+      stackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -16),
+      stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -20),
+      stackView.widthAnchor.constraint(equalTo: scrollView.widthAnchor, constant: -32),
     ])
   }
   
-  private func buildMetadataSections() {
+  private func buildMetadataContent() {
     guard let playable = playable else { return }
     
-    var generalRows: [MetadataRow] = []
-    var technicalRows: [MetadataRow] = []
-    var replayGainRows: [MetadataRow] = []
-    var cacheRows: [MetadataRow] = []
-    
-    // General Information
-    generalRows.append(MetadataRow(label: "Title", value: playable.title))
+    // General Section
+    var generalRows: [(String, String)] = []
+    generalRows.append(("Title", playable.title))
     
     if let song = playable.asSong {
       if let artist = song.artist {
-        generalRows.append(MetadataRow(label: "Artist", value: artist.name))
+        generalRows.append(("Artist", artist.name))
       }
       if let album = song.album {
-        generalRows.append(MetadataRow(label: "Album", value: album.name))
+        generalRows.append(("Album", album.name))
       }
       if let genre = song.genre {
-        generalRows.append(MetadataRow(label: "Genre", value: genre.name))
+        generalRows.append(("Genre", genre.name))
       }
     }
     
     if playable.track > 0 {
-      generalRows.append(MetadataRow(label: "Track", value: "\(playable.track)"))
+      generalRows.append(("Track", "\(playable.track)"))
     }
     
     if let disk = playable.disk, !disk.isEmpty {
-      generalRows.append(MetadataRow(label: "Disc", value: disk))
+      generalRows.append(("Disc", disk))
     }
     
     if playable.year > 0 {
-      generalRows.append(MetadataRow(label: "Year", value: "\(playable.year)"))
+      generalRows.append(("Year", "\(playable.year)"))
     }
     
     if playable.duration > 0 {
-      generalRows.append(MetadataRow(label: "Duration", value: playable.duration.asDurationString))
+      generalRows.append(("Duration", playable.duration.asDurationString))
     }
     
     if let song = playable.asSong {
-      generalRows.append(MetadataRow(label: "Rating", value: song.rating > 0 ? "\(song.rating) / 5" : "Not rated"))
-      generalRows.append(MetadataRow(label: "Favorite", value: song.isFavorite ? "Yes" : "No"))
+      generalRows.append(("Rating", song.rating > 0 ? "\(song.rating) / 5" : "Not rated"))
+      generalRows.append(("Favorite", song.isFavorite ? "Yes" : "No"))
     }
     
-    // Technical Information
+    addSection(title: "General", rows: generalRows)
+    
+    // Technical Section
+    var technicalRows: [(String, String)] = []
+    
     if playable.bitrate > 0 {
-      let bitrateKbps = (playable.bitrate + 500) / 1000  // Round to nearest kbps
-      technicalRows.append(MetadataRow(label: "Bitrate", value: "\(bitrateKbps) kbps"))
+      let bitrateKbps = (playable.bitrate + 500) / 1000
+      technicalRows.append(("Bitrate", "\(bitrateKbps) kbps"))
     }
     
     if let contentType = playable.contentType {
-      technicalRows.append(MetadataRow(label: "Format", value: contentType))
+      technicalRows.append(("Format", contentType))
     }
     
     if playable.size > 0 {
       let sizeInMB = Double(playable.size) / (1024 * 1024)
-      technicalRows.append(MetadataRow(label: "File Size", value: String(format: "%.2f MB", sizeInMB)))
+      technicalRows.append(("File Size", String(format: "%.2f MB", sizeInMB)))
     }
     
-    technicalRows.append(MetadataRow(label: "ID", value: playable.id))
+    technicalRows.append(("ID", playable.id))
     
-    // ReplayGain Information
+    if !technicalRows.isEmpty {
+      addSection(title: "Technical", rows: technicalRows)
+    }
+    
+    // ReplayGain Section
+    var replayGainRows: [(String, String)] = []
+    
     if playable.replayGainTrackGain != 0 {
       let sign = playable.replayGainTrackGain >= 0 ? "+" : ""
-      replayGainRows.append(MetadataRow(
-        label: "Track Gain",
-        value: String(format: "%@%.2f dB", sign, playable.replayGainTrackGain)
-      ))
+      replayGainRows.append(("Track Gain", String(format: "%@%.2f dB", sign, playable.replayGainTrackGain)))
     }
     
     if playable.replayGainTrackPeak != 0 {
-      replayGainRows.append(MetadataRow(
-        label: "Track Peak",
-        value: String(format: "%.6f", playable.replayGainTrackPeak)
-      ))
+      replayGainRows.append(("Track Peak", String(format: "%.6f", playable.replayGainTrackPeak)))
     }
     
     if playable.replayGainAlbumGain != 0 {
       let sign = playable.replayGainAlbumGain >= 0 ? "+" : ""
-      replayGainRows.append(MetadataRow(
-        label: "Album Gain",
-        value: String(format: "%@%.2f dB", sign, playable.replayGainAlbumGain)
-      ))
+      replayGainRows.append(("Album Gain", String(format: "%@%.2f dB", sign, playable.replayGainAlbumGain)))
     }
     
     if playable.replayGainAlbumPeak != 0 {
-      replayGainRows.append(MetadataRow(
-        label: "Album Peak",
-        value: String(format: "%.6f", playable.replayGainAlbumPeak)
-      ))
+      replayGainRows.append(("Album Peak", String(format: "%.6f", playable.replayGainAlbumPeak)))
     }
     
-    // Cache Information
-    cacheRows.append(MetadataRow(label: "Cached", value: playable.isCached ? "Yes" : "No"))
+    if !replayGainRows.isEmpty {
+      addSection(title: "ReplayGain", rows: replayGainRows)
+    }
+    
+    // Cache Section
+    var cacheRows: [(String, String)] = []
+    cacheRows.append(("Cached", playable.isCached ? "Yes" : "No"))
     
     if playable.isCached, let transcodedType = playable.contentTypeTranscoded {
-      cacheRows.append(MetadataRow(label: "Cached Format", value: transcodedType))
+      cacheRows.append(("Cached Format", transcodedType))
     }
     
-    // Build sections (only add non-empty sections)
-    if !generalRows.isEmpty {
-      sections.append(MetadataSection(title: "General", rows: generalRows))
-    }
-    if !technicalRows.isEmpty {
-      sections.append(MetadataSection(title: "Technical", rows: technicalRows))
-    }
-    if !replayGainRows.isEmpty {
-      sections.append(MetadataSection(title: "ReplayGain", rows: replayGainRows))
-    }
-    if !cacheRows.isEmpty {
-      sections.append(MetadataSection(title: "Cache", rows: cacheRows))
-    }
-  }
-}
-
-// MARK: - UITableViewDataSource
-
-extension SongMetadataVC: UITableViewDataSource {
-  func numberOfSections(in tableView: UITableView) -> Int {
-    sections.count
+    addSection(title: "Cache", rows: cacheRows)
   }
   
-  func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-    sections[section].rows.count
-  }
-  
-  func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-    sections[section].title
-  }
-  
-  func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-    guard let cell = tableView.dequeueReusableCell(
-      withIdentifier: MetadataCell.identifier,
-      for: indexPath
-    ) as? MetadataCell else {
-      return UITableViewCell()
-    }
+  private func addSection(title: String, rows: [(String, String)]) {
+    // Section header
+    let headerLabel = UILabel()
+    headerLabel.text = title.uppercased()
+    headerLabel.font = .systemFont(ofSize: 13, weight: .regular)
+    headerLabel.textColor = .secondaryLabel
+    headerLabel.translatesAutoresizingMaskIntoConstraints = false
     
-    let row = sections[indexPath.section].rows[indexPath.row]
-    cell.configure(label: row.label, value: row.value)
-    return cell
-  }
-}
-
-// MARK: - UITableViewDelegate
-
-extension SongMetadataVC: UITableViewDelegate {
-  func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-    tableView.deselectRow(at: indexPath, animated: true)
-    
-    // Copy value to clipboard
-    let row = sections[indexPath.section].rows[indexPath.row]
-    UIPasteboard.general.string = row.value
-    
-    // Show brief feedback
-    let generator = UINotificationFeedbackGenerator()
-    generator.notificationOccurred(.success)
-  }
-}
-
-// MARK: - MetadataCell
-
-class MetadataCell: UITableViewCell {
-  static let identifier = "MetadataCell"
-  
-  private let labelLabel: UILabel = {
-    let label = UILabel()
-    label.translatesAutoresizingMaskIntoConstraints = false
-    label.font = .systemFont(ofSize: 15)
-    label.textColor = .secondaryLabel
-    return label
-  }()
-  
-  private let valueLabel: UILabel = {
-    let label = UILabel()
-    label.translatesAutoresizingMaskIntoConstraints = false
-    label.font = .systemFont(ofSize: 15)
-    label.textColor = .label
-    label.textAlignment = .right
-    label.numberOfLines = 2
-    label.lineBreakMode = .byTruncatingMiddle
-    return label
-  }()
-  
-  override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-    super.init(style: style, reuseIdentifier: reuseIdentifier)
-    setupViews()
-  }
-  
-  required init?(coder: NSCoder) {
-    fatalError("init(coder:) has not been implemented")
-  }
-  
-  private func setupViews() {
-    contentView.addSubview(labelLabel)
-    contentView.addSubview(valueLabel)
+    let headerContainer = UIView()
+    headerContainer.translatesAutoresizingMaskIntoConstraints = false
+    headerContainer.addSubview(headerLabel)
     
     NSLayoutConstraint.activate([
-      labelLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-      labelLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-      labelLabel.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.35),
-      
-      valueLabel.leadingAnchor.constraint(equalTo: labelLabel.trailingAnchor, constant: 8),
-      valueLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-      valueLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-      valueLabel.topAnchor.constraint(greaterThanOrEqualTo: contentView.topAnchor, constant: 11),
-      valueLabel.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -11),
+      headerLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 16),
+      headerLabel.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
+      headerLabel.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: 24),
+      headerLabel.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -8),
     ])
+    
+    stackView.addArrangedSubview(headerContainer)
+    
+    // Section content container with rounded corners
+    let sectionContainer = UIView()
+    sectionContainer.backgroundColor = .secondarySystemGroupedBackground
+    sectionContainer.layer.cornerRadius = 10
+    sectionContainer.translatesAutoresizingMaskIntoConstraints = false
+    
+    let rowsStackView = UIStackView()
+    rowsStackView.axis = .vertical
+    rowsStackView.spacing = 0
+    rowsStackView.translatesAutoresizingMaskIntoConstraints = false
+    sectionContainer.addSubview(rowsStackView)
+    
+    NSLayoutConstraint.activate([
+      rowsStackView.topAnchor.constraint(equalTo: sectionContainer.topAnchor),
+      rowsStackView.leadingAnchor.constraint(equalTo: sectionContainer.leadingAnchor),
+      rowsStackView.trailingAnchor.constraint(equalTo: sectionContainer.trailingAnchor),
+      rowsStackView.bottomAnchor.constraint(equalTo: sectionContainer.bottomAnchor),
+    ])
+    
+    for (index, row) in rows.enumerated() {
+      let rowView = createRowView(label: row.0, value: row.1, isLast: index == rows.count - 1)
+      rowsStackView.addArrangedSubview(rowView)
+    }
+    
+    stackView.addArrangedSubview(sectionContainer)
   }
   
-  func configure(label: String, value: String) {
+  private func createRowView(label: String, value: String, isLast: Bool) -> UIView {
+    let container = UIView()
+    container.translatesAutoresizingMaskIntoConstraints = false
+    
+    let labelLabel = UILabel()
     labelLabel.text = label
+    labelLabel.font = .systemFont(ofSize: 16)
+    labelLabel.textColor = .label
+    labelLabel.translatesAutoresizingMaskIntoConstraints = false
+    labelLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+    
+    let valueLabel = UILabel()
     valueLabel.text = value
+    valueLabel.font = .systemFont(ofSize: 16)
+    valueLabel.textColor = .secondaryLabel
+    valueLabel.textAlignment = .right
+    valueLabel.numberOfLines = 2
+    valueLabel.lineBreakMode = .byTruncatingMiddle
+    valueLabel.translatesAutoresizingMaskIntoConstraints = false
+    
+    container.addSubview(labelLabel)
+    container.addSubview(valueLabel)
+    
+    let separator = UIView()
+    separator.backgroundColor = .separator
+    separator.translatesAutoresizingMaskIntoConstraints = false
+    separator.isHidden = isLast
+    container.addSubview(separator)
+    
+    NSLayoutConstraint.activate([
+      labelLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+      labelLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+      
+      valueLabel.leadingAnchor.constraint(equalTo: labelLabel.trailingAnchor, constant: 8),
+      valueLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+      valueLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+      
+      container.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
+      
+      separator.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+      separator.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+      separator.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+      separator.heightAnchor.constraint(equalToConstant: 0.5),
+    ])
+    
+    // Add tap gesture to copy value
+    let tap = UITapGestureRecognizer(target: self, action: #selector(rowTapped(_:)))
+    container.addGestureRecognizer(tap)
+    container.isUserInteractionEnabled = true
+    container.accessibilityLabel = value
+    
+    return container
+  }
+  
+  @objc
+  private func rowTapped(_ gesture: UITapGestureRecognizer) {
+    guard let view = gesture.view, let value = view.accessibilityLabel else { return }
+    UIPasteboard.general.string = value
+    
+    let generator = UINotificationFeedbackGenerator()
+    generator.notificationOccurred(.success)
   }
 }

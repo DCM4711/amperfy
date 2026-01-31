@@ -248,6 +248,8 @@ class LargeCurrentlyPlayingPlayerView: UIView {
   }
   
   private func setupInfoButton() {
+    guard let ratingView = ratingView else { return }
+    
     infoButton = UIButton(type: .system)
     infoButton.translatesAutoresizingMaskIntoConstraints = false
     
@@ -263,7 +265,7 @@ class LargeCurrentlyPlayingPlayerView: UIView {
     
     NSLayoutConstraint.activate([
       infoButton.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-      infoButton.centerYAnchor.constraint(equalTo: ratingView!.centerYAnchor),
+      infoButton.centerYAnchor.constraint(equalTo: ratingView.centerYAnchor),
       infoButton.widthAnchor.constraint(equalToConstant: 30),
       infoButton.heightAnchor.constraint(equalToConstant: 30),
     ])

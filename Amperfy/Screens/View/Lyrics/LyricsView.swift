@@ -262,7 +262,7 @@ class LyricsView: UITableView, UITableViewDataSource, UITableViewDelegate {
       // Don't highlight any lyric during intro
       if let lastIndex = lastIndex, let lastIndexModel = lyricModels.object(at: lastIndex) {
         lastIndexModel.isActiveLine = false
-        reconfigureRows(at: [IndexPath(row: lastIndex, section: 0)])
+        reloadRows(at: [IndexPath(row: lastIndex, section: 0)], with: .none)
       }
       lastIndex = nil
       return
@@ -288,14 +288,14 @@ class LyricsView: UITableView, UITableViewDataSource, UITableViewDelegate {
       if let prevIndex = lastIndex, prevIndex != lastLineIndex,
          let prevModel = lyricModels.object(at: prevIndex) {
         prevModel.isActiveLine = false
-        reconfigureRows(at: [IndexPath(row: prevIndex, section: 0)])
+        reloadRows(at: [IndexPath(row: prevIndex, section: 0)], with: .none)
       }
       
       // Activate the last line
       if let lastLineModel = lyricModels.object(at: lastLineIndex) {
         lastLineModel.isActiveLine = true
         if lastIndex != lastLineIndex {
-          reconfigureRows(at: [IndexPath(row: lastLineIndex, section: 0)])
+          reloadRows(at: [IndexPath(row: lastLineIndex, section: 0)], with: .none)
         }
       }
       lastIndex = lastLineIndex
@@ -317,10 +317,10 @@ class LyricsView: UITableView, UITableViewDataSource, UITableViewDelegate {
 
     if prevIndex != indexOfCurrentLine {
       if curIndexModel != nil {
-        reconfigureRows(at: [IndexPath(row: indexOfCurrentLine, section: 0)])
+        reloadRows(at: [IndexPath(row: indexOfCurrentLine, section: 0)], with: .none)
       }
       if let prevIndex = prevIndex, lyricModels.object(at: prevIndex) != nil {
-        reconfigureRows(at: [IndexPath(row: prevIndex, section: 0)])
+        reloadRows(at: [IndexPath(row: prevIndex, section: 0)], with: .none)
       }
     }
     scrollToRow(
