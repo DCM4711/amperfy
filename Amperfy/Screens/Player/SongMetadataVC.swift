@@ -41,6 +41,22 @@ class SongMetadataVC: UIViewController {
   
   private func setupNavigationBar() {
     title = "Song Info"
+    
+    // Show close button only on macOS
+    #if targetEnvironment(macCatalyst)
+    let closeButton = UIBarButtonItem(
+      image: UIImage(systemName: "xmark"),
+      style: .plain,
+      target: self,
+      action: #selector(closePressed)
+    )
+    navigationItem.rightBarButtonItem = closeButton
+    #endif
+  }
+  
+  @objc
+  private func closePressed() {
+    dismiss(animated: true)
   }
   
   private func setupScrollView() {
