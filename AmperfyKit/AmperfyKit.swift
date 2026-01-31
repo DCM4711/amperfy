@@ -157,9 +157,11 @@ public class AmperKit {
     playerAudioSessionHandler!.eventLogger = eventLogger
     playerAudioSessionHandler!.configureObserverForAudioSessionInterruption()
     backendAudioPlayer.triggerReinsertPlayableCB = curPlayer.play
-    backendAudioPlayer.deleteCacheCB = { [weak self] playable in
-      self?.storage.main.library.deleteCache(ofPlayable: playable)
+    backendAudioPlayer.deleteTempCacheCB = { [weak self] playableID in
+      self?.storage.main.library.deleteTemporaryCache(playableID: playableID) ?? false
     }
+    // Clean up any orphaned temporary caches from previous app session
+    backendAudioPlayer.cleanupOrphanedTemporaryCaches()
     backendAudioPlayer.updateEqualizerEnabled(isEnabled: storage.settings.user.isEqualizerEnabled)
     backendAudioPlayer
       .updateEqualizerSetting(eqSetting: storage.settings.user.activeEqualizerSetting)

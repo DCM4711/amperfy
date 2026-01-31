@@ -686,6 +686,53 @@ public class LibraryStorage: PlayableFileCachable {
     }
     deleteCacheFinalStep(playable: playable)
   }
+  
+  /// Deletes temporary cache for a playable by ID
+  /// This is only called for songs that were tracked as temporarily cached,
+  /// which only happens when isAutoCachePlayedItems is false.
+  /// Returns true if deleted, false if not found
+  @discardableResult
+  public func deleteTemporaryCache(playableID: String) -> Bool {
+    // Try to find the playable (could be song or podcast episode)
+    let playable: AbstractPlayable?
+    
+    // First try to find as song
+    let songFetch: NSFetchRequest<SongMO> = SongMO.fetchRequest()
+    songFetch.predicate = NSPredicate(format: "%K == %@", #keyPath(SongMO.id), playableID)
+    songFetch.fetchLimit = 1
+    
+    if let songMO = try? context.fetch(songFetch).first {
+      playable = Song(managedObject: songMO)
+    } else {
+      // Try podcast episode
+      let episodeFetch: NSFetchRequest<PodcastEpisodeMO> = PodcastEpisodeMO.fetchRequest()
+      episodeFetch.predicate = NSPredicate(format: "%K == %@", #keyPath(PodcastEpisodeMO.id), playableID)
+      episodeFetch.fetchLimit = 1
+      
+      if let episodeMO = try? context.fetch(episodeFetch).first {
+        playable = PodcastEpisode(managedObject: episodeMO)
+      } else {
+        playable = nil
+      }
+    }
+    
+    guard let playable = playable else {
+      os_log("deleteTemporaryCache: Playable not found for ID: %s", log: log, type: .debug, playableID)
+      return false
+    }
+    
+    // Only delete if the song is actually cached
+    guard playable.isCached else {
+      os_log("deleteTemporaryCache: Playable not cached, skipping: %s", log: log, type: .debug, playable.displayString)
+      return false
+    }
+    
+    // Delete the cache - this is safe because we only track temporary caches
+    // when isAutoCachePlayedItems is false (user didn't want to keep cached songs)
+    os_log("deleteTemporaryCache: Deleting temporary cache: %s", log: log, type: .debug, playable.displayString)
+    deleteCache(ofPlayable: playable)
+    return true
+  }
 
   private func deleteCacheFinalStep(playable: AbstractPlayable) {
     playable.contentTypeTranscoded = nil

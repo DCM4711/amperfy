@@ -107,14 +107,14 @@ class BackendAudioPlayer: NSObject {
   // Pending asset to play when user presses play (used when autoStartPlayback is false)
   private var pendingPlayAsset: AVURLAsset?
   
-  // Track playable that was temporarily cached for seeking (will be deleted on song change)
-  private var temporarilyCachedPlayable: AbstractPlayable?
-  
   // Track the currently playing playable (for switching from stream to cache on seek)
   private var currentPlayable: AbstractPlayable?
   
-  // Callback to delete cache of a playable
-  public var deleteCacheCB: ((AbstractPlayable) -> Void)?
+  // Key for storing temporarily cached song IDs in UserDefaults (array of IDs)
+  private static let temporaryCacheKey = "temporarilyCachedPlayableIDs"
+  
+  // Callback to delete cache of a playable by ID, returns true if deleted
+  public var deleteTempCacheCB: ((String) -> Bool)?
 
   private var player: AudioStreamingPlayer?
   private var equalizer: AVAudioUnitEQ?
@@ -351,12 +351,8 @@ class BackendAudioPlayer: NSObject {
     pendingPlayAsset = nil
     currentPlayable = nil
     
-    // Clean up temporarily cached song
-    if let tempCached = temporarilyCachedPlayable, tempCached.isCached {
-      os_log(.debug, "Stopping - deleting temporary cache: %s", tempCached.displayString)
-      deleteCacheCB?(tempCached)
-      temporarilyCachedPlayable = nil
-    }
+    // Clean up all temporarily cached songs
+    cleanupTemporaryCaches(exceptID: nil)
     
     clearPlayer()
     audioAnalyzer.stop()
@@ -490,14 +486,8 @@ class BackendAudioPlayer: NSObject {
     playbackRate: PlaybackRate,
     autoStartPlayback: Bool
   ) {
-    // Clean up temporarily cached song from previous playback (if different song)
-    if let tempCached = temporarilyCachedPlayable,
-       tempCached != playable,
-       tempCached.isCached {
-      os_log(.debug, "Deleting temporary cache: %s", tempCached.displayString)
-      deleteCacheCB?(tempCached)
-      temporarilyCachedPlayable = nil
-    }
+    // Clean up all temporarily cached songs except the new one
+    cleanupTemporaryCaches(exceptID: playable.id)
     
     userDefinedPlaybackRate = playbackRate
     player?.rate = Float(userDefinedPlaybackRate.asDouble)
@@ -589,7 +579,7 @@ class BackendAudioPlayer: NSObject {
             // Only track as temporary if auto-cache is disabled
             // (if enabled, user wants to keep it permanently)
             if !self.isAutoCachePlayedItems {
-              self.temporarilyCachedPlayable = playable
+              self.addToTemporaryCacheList(playableID: playable.id)
               os_log(.debug, "Temporarily caching for seeking: %s", playable.displayString)
             }
           }
@@ -875,6 +865,63 @@ class BackendAudioPlayer: NSObject {
   func updateReplayGainPreamp(preamp: Int) {
     replayGainPreamp = preamp
     applyReplayGain()
+  }
+  
+  /// Adds a playable ID to the temporary cache list
+  private func addToTemporaryCacheList(playableID: String) {
+    var cachedIDs = UserDefaults.standard.stringArray(forKey: Self.temporaryCacheKey) ?? []
+    if !cachedIDs.contains(playableID) {
+      cachedIDs.append(playableID)
+      UserDefaults.standard.set(cachedIDs, forKey: Self.temporaryCacheKey)
+    }
+  }
+  
+  /// Removes a playable ID from the temporary cache list
+  private func removeFromTemporaryCacheList(playableID: String) {
+    var cachedIDs = UserDefaults.standard.stringArray(forKey: Self.temporaryCacheKey) ?? []
+    cachedIDs.removeAll { $0 == playableID }
+    if cachedIDs.isEmpty {
+      UserDefaults.standard.removeObject(forKey: Self.temporaryCacheKey)
+    } else {
+      UserDefaults.standard.set(cachedIDs, forKey: Self.temporaryCacheKey)
+    }
+  }
+  
+  /// Cleans up all temporarily cached songs, optionally keeping one
+  /// Only removes IDs from the list if the cache was actually deleted
+  private func cleanupTemporaryCaches(exceptID: String? = nil) {
+    let cachedIDs = UserDefaults.standard.stringArray(forKey: Self.temporaryCacheKey) ?? []
+    var remainingIDs: [String] = []
+    
+    for cachedID in cachedIDs {
+      if cachedID == exceptID {
+        // Keep the exception ID
+        remainingIDs.append(cachedID)
+      } else {
+        os_log(.debug, "Attempting to clean up temporary cache for song: %s", cachedID)
+        // Only remove from list if deletion was successful
+        let wasDeleted = deleteTempCacheCB?(cachedID) ?? false
+        if !wasDeleted {
+          // Deletion failed (e.g., download not complete yet), keep in list for later cleanup
+          remainingIDs.append(cachedID)
+          os_log(.debug, "Temporary cache not yet available for deletion, keeping in list: %s", cachedID)
+        } else {
+          os_log(.debug, "Successfully deleted temporary cache: %s", cachedID)
+        }
+      }
+    }
+    
+    if remainingIDs.isEmpty {
+      UserDefaults.standard.removeObject(forKey: Self.temporaryCacheKey)
+    } else {
+      UserDefaults.standard.set(remainingIDs, forKey: Self.temporaryCacheKey)
+    }
+  }
+  
+  /// Call this on app startup to clean up any orphaned temporary caches
+  /// (e.g., from app termination while playing)
+  public func cleanupOrphanedTemporaryCaches() {
+    cleanupTemporaryCaches(exceptID: nil)
   }
 
   private func applyReplayGain() {
