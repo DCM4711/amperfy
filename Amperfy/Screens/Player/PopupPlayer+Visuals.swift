@@ -143,8 +143,24 @@ extension PopupPlayerVC {
   }
 
   internal func applyGradientBackground() {
+    // Check if we're in dark mode
+    let isDarkMode = traitCollection.userInterfaceStyle == .dark
+    
+    // Darken colors for dark mode (reduce brightness to ~35%)
+    let adjustedColors: [UIColor] = artworkGradientColors.map { color in
+      if isDarkMode {
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        color.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
+        // Reduce brightness significantly for dark mode
+        let darkenedBrightness = b * 0.35
+        return UIColor(hue: h, saturation: s, brightness: darkenedBrightness, alpha: a)
+      } else {
+        return color
+      }
+    }
+    
     // Sort colors so darker color is at the bottom (end of gradient)
-    let sortedColors = artworkGradientColors.sorted { color1, color2 in
+    let sortedColors = adjustedColors.sorted { color1, color2 in
       // Calculate perceived brightness: darker colors should come last
       var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
       var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
