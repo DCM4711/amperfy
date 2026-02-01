@@ -175,9 +175,14 @@ public class AudioPlayer: NSObject, BackendAudioPlayerNotifiable {
         queueHandler.insertUserQueue(playables: [topUserQueueItem])
       }
     } else if context.index == 0 {
-      // Clear play progress of previous song when switching tracks
+      // Clear play progress when switching to a different song
+      // If previouslyPlaying is nil (app restart), don't clear - allows resume
       if let previous = previouslyPlaying, previous != activePlayable {
         previous.playProgress = 0
+        // Also clear new song's progress to remove any stale stored progress
+        if activePlayable.isSong {
+          activePlayable.playProgress = 0
+        }
       }
       insertIntoPlayer(playable: activePlayable)
     } else {
@@ -193,10 +198,14 @@ public class AudioPlayer: NSObject, BackendAudioPlayerNotifiable {
       return
     }
     
-    // Clear play progress of previous song when switching tracks
-    // (play progress should only be remembered for app restart, not for skipping)
+    // Clear play progress when switching to a different song
+    // If previouslyPlaying is nil (app restart), don't clear - allows resume
     if let previous = previouslyPlaying, previous != playable {
       previous.playProgress = 0
+      // Also clear new song's progress to remove any stale stored progress
+      if playable.isSong {
+        playable.playProgress = 0
+      }
     }
     
     insertIntoPlayer(playable: playable, autoStartPlayback: autoStartPlayback)
