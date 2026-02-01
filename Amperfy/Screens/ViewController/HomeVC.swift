@@ -69,6 +69,7 @@ final class HomeVC: UICollectionViewController {
     super.viewDidLoad()
     // ensures that the collection view stops placing items under the sidebar
     collectionView.contentInsetAdjustmentBehavior = .scrollableAxes
+    view.backgroundColor = .customDarkBackground
     title = "Home"
 
     accountNotificationHandler = AccountNotificationHandler(
