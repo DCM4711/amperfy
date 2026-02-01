@@ -731,6 +731,18 @@ public class LibraryStorage: PlayableFileCachable {
     // when isAutoCachePlayedItems is false (user didn't want to keep cached songs)
     os_log("deleteTemporaryCache: Deleting temporary cache: %s", log: log, type: .debug, playable.displayString)
     deleteCache(ofPlayable: playable)
+    
+    // Also delete the DownloadMO record so it doesn't show in Downloads view
+    if let song = playable.asSong, let downloadMO = song.managedObject.download {
+      os_log("deleteTemporaryCache: Deleting DownloadMO record for: %s", log: log, type: .debug, playable.displayString)
+      context.delete(downloadMO)
+      saveContext()
+    } else if let episode = playable.asPodcastEpisode, let downloadMO = episode.managedObject.download {
+      os_log("deleteTemporaryCache: Deleting DownloadMO record for: %s", log: log, type: .debug, playable.displayString)
+      context.delete(downloadMO)
+      saveContext()
+    }
+    
     return true
   }
 

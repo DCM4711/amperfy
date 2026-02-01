@@ -240,6 +240,7 @@ class BackendAudioPlayer: NSObject {
       Task { @MainActor in
         guard let self = self else { return }
         self.checkForPreloadNextPlayerItem()
+        self.retryTemporaryCacheCleanup()
         self.responder?.didElapsedTimeChange()
       }
     }
@@ -301,6 +302,15 @@ class BackendAudioPlayer: NSObject {
   private func itemFinishedPlaying() {
     isTriggerReinsertPlayableAllowed = true
     isPreviousPlaylableFinshed = true
+    
+    // Clean up the finished song's temporary cache (if any)
+    // Keep the next preloaded song's cache
+    if let finishedPlayable = currentPlayable {
+      let nextID = nextPreloadedPlayable?.id
+      cleanupTemporaryCaches(exceptID: nextID)
+      os_log(.debug, "Song finished, cleaned up temp caches except: %s", nextID ?? "none")
+    }
+    
     if nextPreloadedPlayable != nil {
       isPlaying = true
       startTimers()
@@ -931,6 +941,21 @@ class BackendAudioPlayer: NSObject {
   public func cleanupOrphanedTemporaryCaches() {
     cleanupTemporaryCaches(exceptID: nil)
   }
+  
+  /// Periodically retry cleaning up temporary caches that couldn't be deleted before
+  /// (e.g., because the download wasn't complete yet)
+  private func retryTemporaryCacheCleanup() {
+    // Only retry if there are items in the list and we're not on every single tick
+    // Use a simple counter to only run every 5 seconds instead of every second
+    retryCleanupCounter += 1
+    guard retryCleanupCounter >= 5 else { return }
+    retryCleanupCounter = 0
+    
+    let currentID = currentPlayable?.id
+    cleanupTemporaryCaches(exceptID: currentID)
+  }
+  
+  private var retryCleanupCounter: Int = 0
 
   private func applyReplayGain() {
     guard let replayGain = replayGainNode else { return }
