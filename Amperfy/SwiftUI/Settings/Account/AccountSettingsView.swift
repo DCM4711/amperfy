@@ -147,15 +147,8 @@ struct AccountSettingsView: View {
             )
           }, header: "Auto Cache")
 
-          SettingsSection(
-            content: {
-              SettingsCheckBoxRow(
-                title: "Scrobble streamed Songs",
-                isOn: $settings.isScrobbleStreamedItems
-              )
-            },
-            footer: "Enable to scrobble all streamed songs, even if the server already marks them as played."
-          )
+          // Scrobbling is always enabled - server will increment playcount
+          // when songs are played for more than 50% (or 4 min)
 
           SettingsSection {
             SettingsRow(title: "Backend API", splitPercentage: splitPercentage) {

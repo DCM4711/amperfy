@@ -111,7 +111,8 @@ public class AudioPlayer: NSObject, BackendAudioPlayerNotifiable {
       repeatMode: playerStatus.repeatMode,
       isShuffle: playerStatus.isShuffle
     )
-    playable.countPlayed()
+    // Only update lastTimePlayed locally; playCount is managed by the server
+    playable.lastTimePlayed = Date()
     // Use provided autoStartPlayback, or fall back to user setting
     let shouldAutoStart = autoStartPlayback ?? !settings.user.isPlaybackStartOnlyOnPlay
     backendAudioPlayer.requestToPlay(

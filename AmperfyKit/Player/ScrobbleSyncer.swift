@@ -204,6 +204,18 @@ public class ScrobbleSyncer {
     }
 
     startScrobbleTimer(forSong: curPlayingSong, withDuration: currentSongThreshold)
+    
+    // Fetch updated song info from server (including playCount)
+    if storage.settings.user.isOnlineMode, networkMonitor.isConnectedToNetwork {
+      Task {
+        do {
+          try await librarySyncer.sync(song: curPlayingSong)
+          os_log("Synced song info from server: %s", log: log, type: .debug, curPlayingSong.displayString)
+        } catch {
+          os_log("Failed to sync song info: %s", log: log, type: .debug, error.localizedDescription)
+        }
+      }
+    }
   }
 
   private func startScrobbleTimer(forSong song: Song, withDuration duration: TimeInterval) {
@@ -217,10 +229,9 @@ public class ScrobbleSyncer {
       Task { @MainActor in
         let curPlayingClosureMO = self.storage.main.context.object(with: curPlayingId) as! SongMO
         let curPlayingClosure = Song(managedObject: curPlayingClosureMO)
-        guard curPlayingClosure == self.player.currentlyPlaying,
-              self.player.playType == .cache || self.storage.settings
-              .accounts.getSetting(self.account.info).read.isScrobbleStreamedItems
+        guard curPlayingClosure == self.player.currentlyPlaying
         else { return }
+        // Always scrobble regardless of stream/cache - server will increment playcount
         self.songHasBeenListendEnough = true
       }
     }

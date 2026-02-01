@@ -128,9 +128,7 @@ class SongMetadataVC: UIViewController {
       generalRows.append(("Favorite", song.isFavorite ? "Yes" : "No"))
       
       // Playcount
-      if song.playCount > 0 {
-        generalRows.append(("Play Count", "\(song.playCount)"))
-      }
+      generalRows.append(("Play Count", "\(song.playCount)"))
     }
     
     addSection(title: "General", rows: generalRows)
