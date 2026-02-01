@@ -599,15 +599,12 @@ class LargeCurrentlyPlayingPlayerView: UIView {
   private func updateArtworkScaleForCurrentState(animated: Bool) {
     let isPlaying = appDelegate.player.isPlaying
     
-    // Calculate scale factor to match details container width (with 16pt margins on each side)
-    let targetWidth = bounds.width - 32  // Full width minus margins
-    let currentWidth = artworkImage.bounds.width
-    let currentHeight = artworkImage.bounds.height
-    
-    guard currentWidth > 0, currentHeight > 0 else { return }
-    
-    let playingScale = targetWidth / currentWidth
+    // Fixed 10% zoom when playing
+    let playingScale: CGFloat = 1.1
     let targetScale = isPlaying ? playingScale : 1.0
+    
+    let currentHeight = artworkImage.bounds.height
+    guard currentHeight > 0 else { return }
     
     // To keep the bottom edge fixed while scaling from center anchor:
     // When scaling up, the image grows in all directions from center
