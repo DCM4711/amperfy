@@ -156,18 +156,29 @@ extension PopupPlayerVC {
     }
     
     let colors = sortedColors.compactMap { $0.cgColor }
-    // remove existing gradient layer
-    backgroundImage.layer.sublayers?.forEach { layer in
+    
+    // Find the blur effect view (added by setBackgroundBlur) and apply gradient to it
+    // This ensures the gradient is visible on top of the blur on iPad
+    let targetView: UIView
+    if let blurView = backgroundImage.subviews.first(where: { $0 is UIVisualEffectView }) {
+      targetView = blurView
+    } else {
+      targetView = backgroundImage
+    }
+    
+    // Remove existing gradient layer
+    targetView.layer.sublayers?.forEach { layer in
       if layer is CAGradientLayer {
         layer.removeFromSuperlayer()
       }
     }
+    
     let gradientLayer = CAGradientLayer()
-    gradientLayer.frame = backgroundImage.bounds
+    gradientLayer.frame = targetView.bounds
     gradientLayer.colors = colors
     gradientLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
     gradientLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
-    backgroundImage.layer.insertSublayer(gradientLayer, at: 0)
+    targetView.layer.addSublayer(gradientLayer)
   }
 
   @objc
