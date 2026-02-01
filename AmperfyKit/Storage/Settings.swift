@@ -120,7 +120,7 @@ public struct UserSettings: Sendable, Codable {
 
   private var _isLyricsSmoothScrolling: Bool = true
   public var isLyricsSmoothScrolling: Bool {
-    get { _isLyricsSmoothScrolling }
+    get { true } // Always enabled
     set { _isLyricsSmoothScrolling = newValue }
   }
 
