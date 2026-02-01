@@ -568,23 +568,31 @@ class PlayerUIHandler: NSObject {
     let temporarilyCachedIDs = UserDefaults.standard.stringArray(forKey: temporaryCacheKey) ?? []
     let isTemporarilyCached = temporarilyCachedIDs.contains(currentlyPlaying.id)
     
+    // Check if song is still actually cached on disk (file might have been deleted)
+    let isStillCached = currentlyPlaying.isCached
+    
     if playType == .cache {
-      // Playing from cache - get bitrate and format from cached file
+      // Was playing from cache - get bitrate and format from song metadata
       displayBitrateInKbps = currentlyPlaying.bitrate / 1000
       formatText = getFormat(contentType: currentlyPlaying.fileContentType)
       
-      if isTemporarilyCached {
-        // Temporarily cached for scrubbing - show green antenna
-        playTypeIcon.image = UIImage.antenna
-        playTypeIcon.tintColor = UIColor.systemGreen
+      if isStillCached {
+        if isTemporarilyCached {
+          // Temporarily cached for scrubbing - show green antenna
+          playTypeIcon.image = UIImage.antenna
+          playTypeIcon.tintColor = UIColor.systemGreen
+        } else {
+          // User-downloaded - show downloaded icon
+          playTypeIcon.image = UIImage.cache
+          playTypeIcon.tintColor = .labelColor
+        }
       } else {
-        // User-downloaded - show downloaded icon
-        playTypeIcon.image = UIImage.cache
+        // Cache was deleted - show antenna icon
+        playTypeIcon.image = UIImage.antenna
         playTypeIcon.tintColor = .labelColor
       }
     } else {
       // Streaming
-      playTypeIcon.image = UIImage.antenna
       let streamingBitrate = player.activeStreamingBitrate
       if let streamingBitrate {
         if streamingBitrate == .noLimit ||
@@ -609,10 +617,18 @@ class PlayerUIHandler: NSObject {
         formatText = ""
       }
       
-      // If streaming but song is now cached (temporarily or in background), show green antenna
-      if currentlyPlaying.isCached {
+      // Check if song was downloaded while streaming
+      if isStillCached, !isTemporarilyCached {
+        // User-downloaded while streaming - show downloaded icon
+        playTypeIcon.image = UIImage.cache
+        playTypeIcon.tintColor = .labelColor
+      } else if isStillCached {
+        // Temporarily cached - show green antenna
+        playTypeIcon.image = UIImage.antenna
         playTypeIcon.tintColor = UIColor.systemGreen
       } else {
+        // Still streaming - show normal antenna
+        playTypeIcon.image = UIImage.antenna
         playTypeIcon.tintColor = .labelColor
       }
     }

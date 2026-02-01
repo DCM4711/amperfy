@@ -25,9 +25,11 @@ import UIKit
 
 class SongMetadataVC: UIViewController {
   var playable: AbstractPlayable?
+  private var amperKit: AmperKit { AmperKit.shared }
   
   private let scrollView = UIScrollView()
   private let stackView = UIStackView()
+  private var isUserDownloaded = false
   
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -188,7 +190,7 @@ class SongMetadataVC: UIViewController {
     // A song is user-downloaded if:
     // 1. It has a completed Download object, AND
     // 2. Its ID is NOT in the temporary cache list (which tracks songs cached only for scrubbing)
-    var isUserDownloaded = false
+    isUserDownloaded = false
     if let song = playable.asSong,
        let downloadMO = song.managedObject.download {
       let download = Download(managedObject: downloadMO)
@@ -209,7 +211,151 @@ class SongMetadataVC: UIViewController {
       downloadRows.append(("Downloaded Format", transcodedType))
     }
     
-    addSection(title: "Download", rows: downloadRows)
+    addDownloadSection(rows: downloadRows, isDownloaded: isUserDownloaded)
+  }
+  
+  private func addDownloadSection(rows: [(String, String)], isDownloaded: Bool) {
+    // Section header
+    let headerLabel = UILabel()
+    headerLabel.text = "DOWNLOAD"
+    headerLabel.font = .systemFont(ofSize: 13, weight: .regular)
+    headerLabel.textColor = .secondaryLabel
+    headerLabel.translatesAutoresizingMaskIntoConstraints = false
+    
+    let headerContainer = UIView()
+    headerContainer.translatesAutoresizingMaskIntoConstraints = false
+    headerContainer.addSubview(headerLabel)
+    
+    NSLayoutConstraint.activate([
+      headerLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 16),
+      headerLabel.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
+      headerLabel.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: 24),
+      headerLabel.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -8),
+    ])
+    
+    stackView.addArrangedSubview(headerContainer)
+    
+    // Section content container with rounded corners
+    let sectionContainer = UIView()
+    sectionContainer.backgroundColor = .secondarySystemGroupedBackground
+    sectionContainer.layer.cornerRadius = 10
+    sectionContainer.translatesAutoresizingMaskIntoConstraints = false
+    
+    let rowsStackView = UIStackView()
+    rowsStackView.axis = .vertical
+    rowsStackView.spacing = 0
+    rowsStackView.translatesAutoresizingMaskIntoConstraints = false
+    sectionContainer.addSubview(rowsStackView)
+    
+    NSLayoutConstraint.activate([
+      rowsStackView.topAnchor.constraint(equalTo: sectionContainer.topAnchor),
+      rowsStackView.leadingAnchor.constraint(equalTo: sectionContainer.leadingAnchor),
+      rowsStackView.trailingAnchor.constraint(equalTo: sectionContainer.trailingAnchor),
+      rowsStackView.bottomAnchor.constraint(equalTo: sectionContainer.bottomAnchor),
+    ])
+    
+    // Add info rows
+    for (index, row) in rows.enumerated() {
+      let showCopyIcon = row.0 == "ID"
+      let rowView = createRowView(label: row.0, value: row.1, isLast: false, showCopyIcon: showCopyIcon)
+      rowsStackView.addArrangedSubview(rowView)
+    }
+    
+    // Add download/delete button row
+    let buttonRow = createDownloadButtonRow(isDownloaded: isDownloaded)
+    rowsStackView.addArrangedSubview(buttonRow)
+    
+    stackView.addArrangedSubview(sectionContainer)
+  }
+  
+  private func createDownloadButtonRow(isDownloaded: Bool) -> UIView {
+    let container = UIView()
+    container.translatesAutoresizingMaskIntoConstraints = false
+    
+    var config = UIButton.Configuration.plain()
+    config.imagePadding = 8
+    
+    if isDownloaded {
+      config.title = "Delete from Device"
+      config.image = UIImage(systemName: "trash")
+      config.baseForegroundColor = .systemRed
+    } else {
+      config.title = "Download to Device"
+      config.image = UIImage(systemName: "arrow.down.circle")
+      config.baseForegroundColor = .white
+    }
+    
+    let button = UIButton(configuration: config)
+    button.translatesAutoresizingMaskIntoConstraints = false
+    button.addTarget(self, action: #selector(downloadButtonTapped), for: .touchUpInside)
+    
+    container.addSubview(button)
+    
+    NSLayoutConstraint.activate([
+      button.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+      button.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+      container.heightAnchor.constraint(equalToConstant: 50),
+    ])
+    
+    return container
+  }
+  
+  @objc
+  private func downloadButtonTapped() {
+    guard let playable = playable else { return }
+    
+    if isUserDownloaded {
+      // Delete the cache file
+      amperKit.storage.main.library.deleteCache(ofPlayable: playable)
+      
+      // Also delete the DownloadMO record
+      if let song = playable.asSong, let downloadMO = song.managedObject.download {
+        amperKit.storage.main.context.delete(downloadMO)
+      }
+      
+      amperKit.storage.main.saveContext()
+      
+      showCopiedToast(message: "Removed from device")
+      
+      // Refresh the view
+      refreshContent()
+    } else {
+      // User wants to download the song permanently
+      // First, remove from temporary cache list if present (so it won't be deleted later)
+      let temporaryCacheKey = "temporarilyCachedPlayableIDs"
+      var cachedIDs = UserDefaults.standard.stringArray(forKey: temporaryCacheKey) ?? []
+      if cachedIDs.contains(playable.id) {
+        cachedIDs.removeAll { $0 == playable.id }
+        if cachedIDs.isEmpty {
+          UserDefaults.standard.removeObject(forKey: temporaryCacheKey)
+        } else {
+          UserDefaults.standard.set(cachedIDs, forKey: temporaryCacheKey)
+        }
+      }
+      
+      // If already cached (temporarily), just keep it - it's now a user download
+      if playable.isCached {
+        showCopiedToast(message: "Saved to device")
+        refreshContent()
+      } else {
+        // Not cached yet, start download
+        if let song = playable.asSong, let accountInfo = song.account?.info {
+          amperKit.getMeta(accountInfo).playableDownloadManager.download(object: song)
+          showCopiedToast(message: "Download started")
+        }
+      }
+    }
+  }
+  
+  private func refreshContent() {
+    // Remove all arranged subviews
+    for subview in stackView.arrangedSubviews {
+      stackView.removeArrangedSubview(subview)
+      subview.removeFromSuperview()
+    }
+    
+    // Rebuild content
+    buildMetadataContent()
   }
   
   private func addSection(title: String, rows: [(String, String)]) {
@@ -353,12 +499,12 @@ class SongMetadataVC: UIViewController {
     generator.notificationOccurred(.success)
     
     // Show toast notification
-    showCopiedToast()
+    showCopiedToast(message: "Copied to clipboard")
   }
   
-  private func showCopiedToast() {
+  private func showCopiedToast(message: String = "Copied to clipboard") {
     let toast = UILabel()
-    toast.text = "Copied to clipboard"
+    toast.text = message
     toast.font = .systemFont(ofSize: 14, weight: .medium)
     toast.textColor = .white
     toast.backgroundColor = UIColor.black.withAlphaComponent(0.75)
