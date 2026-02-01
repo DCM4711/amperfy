@@ -253,14 +253,15 @@ class SongMetadataVC: UIViewController {
     ])
     
     for (index, row) in rows.enumerated() {
-      let rowView = createRowView(label: row.0, value: row.1, isLast: index == rows.count - 1)
+      let showCopyIcon = row.0 == "ID"
+      let rowView = createRowView(label: row.0, value: row.1, isLast: index == rows.count - 1, showCopyIcon: showCopyIcon)
       rowsStackView.addArrangedSubview(rowView)
     }
     
     stackView.addArrangedSubview(sectionContainer)
   }
   
-  private func createRowView(label: String, value: String, isLast: Bool) -> UIView {
+  private func createRowView(label: String, value: String, isLast: Bool, showCopyIcon: Bool = false) -> UIView {
     let container = UIView()
     container.translatesAutoresizingMaskIntoConstraints = false
     
@@ -283,20 +284,49 @@ class SongMetadataVC: UIViewController {
     container.addSubview(labelLabel)
     container.addSubview(valueLabel)
     
+    // Add copy icon if requested
+    var copyIcon: UIImageView?
+    if showCopyIcon {
+      let icon = UIImageView(image: UIImage(systemName: "doc.on.doc"))
+      icon.tintColor = .secondaryLabel
+      icon.translatesAutoresizingMaskIntoConstraints = false
+      icon.contentMode = .scaleAspectFit
+      container.addSubview(icon)
+      copyIcon = icon
+    }
+    
     let separator = UIView()
     separator.backgroundColor = .separator
     separator.translatesAutoresizingMaskIntoConstraints = false
     separator.isHidden = isLast
     container.addSubview(separator)
     
+    if let copyIcon = copyIcon {
+      NSLayoutConstraint.activate([
+        labelLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+        labelLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+        
+        copyIcon.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+        copyIcon.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+        copyIcon.widthAnchor.constraint(equalToConstant: 18),
+        copyIcon.heightAnchor.constraint(equalToConstant: 18),
+        
+        valueLabel.leadingAnchor.constraint(equalTo: labelLabel.trailingAnchor, constant: 8),
+        valueLabel.trailingAnchor.constraint(equalTo: copyIcon.leadingAnchor, constant: -8),
+        valueLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+      ])
+    } else {
+      NSLayoutConstraint.activate([
+        labelLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+        labelLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+        
+        valueLabel.leadingAnchor.constraint(equalTo: labelLabel.trailingAnchor, constant: 8),
+        valueLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+        valueLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+      ])
+    }
+    
     NSLayoutConstraint.activate([
-      labelLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-      labelLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-      
-      valueLabel.leadingAnchor.constraint(equalTo: labelLabel.trailingAnchor, constant: 8),
-      valueLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
-      valueLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-      
       container.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
       
       separator.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
@@ -321,5 +351,43 @@ class SongMetadataVC: UIViewController {
     
     let generator = UINotificationFeedbackGenerator()
     generator.notificationOccurred(.success)
+    
+    // Show toast notification
+    showCopiedToast()
+  }
+  
+  private func showCopiedToast() {
+    let toast = UILabel()
+    toast.text = "Copied to clipboard"
+    toast.font = .systemFont(ofSize: 14, weight: .medium)
+    toast.textColor = .white
+    toast.backgroundColor = UIColor.black.withAlphaComponent(0.75)
+    toast.textAlignment = .center
+    toast.layer.cornerRadius = 8
+    toast.clipsToBounds = true
+    toast.translatesAutoresizingMaskIntoConstraints = false
+    toast.alpha = 0
+    
+    view.addSubview(toast)
+    
+    NSLayoutConstraint.activate([
+      toast.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+      toast.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+      toast.widthAnchor.constraint(greaterThanOrEqualToConstant: 150),
+      toast.heightAnchor.constraint(equalToConstant: 36),
+    ])
+    
+    // Add padding
+    toast.layoutMargins = UIEdgeInsets(top: 8, left: 16, bottom: 8, right: 16)
+    
+    UIView.animate(withDuration: 0.2) {
+      toast.alpha = 1
+    } completion: { _ in
+      UIView.animate(withDuration: 0.2, delay: 1.0) {
+        toast.alpha = 0
+      } completion: { _ in
+        toast.removeFromSuperview()
+      }
+    }
   }
 }
