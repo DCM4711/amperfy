@@ -1,4 +1,4 @@
-# # ![App Icon](Assets/icon-64.png) Amperfy Musify
+# ![App Icon](Assets/icon-64.png) Musify
 Musify is a fork of the Amperfy project with adjustments for my personal needs. I want to thank BLeeEZ for the awesome work that Amperfy represents. My modifications to Amperfy will probably not be liked by most Amperfy users as I have even removed features/settings that I personally do not need. I am a big advocate of a simple UI and provide a minimal number of settings options.
 I do not implement pull requests - please support the Amperfy project if you want features to be added. I will include Amperfy updates in Musify from time to time though.
 
