@@ -39,6 +39,20 @@ class PlayerUIHandler: NSObject {
   public static let bigButtonImagePointSize: CGFloat = 17
   public static let playAndNextiOSButtonImagePointSize: CGFloat = 15
 
+  // Cache for temporary cache IDs to avoid reading UserDefaults every second
+  private static var cachedTemporaryCacheIDs: [String] = []
+  private static var lastCacheRefresh: Date = .distantPast
+  private static let cacheRefreshInterval: TimeInterval = 2.0
+  
+  private static func isTemporarilyCached(id: String) -> Bool {
+    let now = Date()
+    if now.timeIntervalSince(lastCacheRefresh) >= cacheRefreshInterval {
+      lastCacheRefresh = now
+      cachedTemporaryCacheIDs = UserDefaults.standard.stringArray(forKey: "temporarilyCachedPlayableIDs") ?? []
+    }
+    return cachedTemporaryCacheIDs.contains(id)
+  }
+  
   private var player: PlayerFacade
   private var style: PlayerUIStyle
 
@@ -564,9 +578,8 @@ class PlayerUIHandler: NSObject {
     }
 
     // Check if this song is only temporarily cached for scrubbing (not user-downloaded)
-    let temporaryCacheKey = "temporarilyCachedPlayableIDs"
-    let temporarilyCachedIDs = UserDefaults.standard.stringArray(forKey: temporaryCacheKey) ?? []
-    let isTemporarilyCached = temporarilyCachedIDs.contains(currentlyPlaying.id)
+    // Use cached value to avoid reading UserDefaults every second
+    let isTemporarilyCached = Self.isTemporarilyCached(id: currentlyPlaying.id)
     
     // Check if song is still actually cached on disk (file might have been deleted)
     let isStillCached = currentlyPlaying.isCached

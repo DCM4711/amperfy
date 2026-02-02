@@ -64,18 +64,9 @@ class LyricsVC: UIViewController {
   }
 
   private func fetchSongInfoAndUpdateLyrics() {
-    guard appDelegate.storage.settings.user.isOnlineMode,
-          let song = player.currentlyPlaying?.asSong,
-          let account = song.account
-    else { return }
-
-    Task { @MainActor in do {
-      try await self.appDelegate.getMeta(account.info).librarySyncer
-        .sync(song: song)
-      self.refreshLyrics()
-    } catch {
-      self.appDelegate.eventLogger.report(topic: "Song Info", error: error)
-    }}
+    // Song sync is now handled centrally by ScrobbleSyncer when song starts
+    // This just refreshes the lyrics UI
+    refreshLyrics()
   }
 
   private func showLyrics(structuredLyrics: StructuredLyrics) {

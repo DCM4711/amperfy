@@ -106,34 +106,43 @@ extension PopupPlayerVC {
   }
 
   func refreshBackgroundItemArtwork() {
-    var artwork: UIImage?
     var themePreference: ThemePreference = appDelegate.storage.settings.accounts.activeSetting.read
       .themePreference
-    if let playableInfo = player.currentlyPlaying, let accountInfo = playableInfo.account?.info {
-      themePreference = appDelegate.storage.settings.accounts.getSetting(accountInfo).read
-        .themePreference
-      artwork = LibraryEntityImage.getImageToDisplayImmediately(
-        libraryEntity: playableInfo,
-        themePreference: themePreference,
-        artworkDisplayPreference: appDelegate.storage.settings.accounts.getSetting(accountInfo).read
-          .artworkDisplayPreference,
-        useCache: true
-      )
-    } else {
+    
+    guard let playableInfo = player.currentlyPlaying, 
+          let accountInfo = playableInfo.account?.info else {
+      // No song playing - show placeholder
+      let placeholderArtwork: UIImage
       switch player.playerMode {
       case .music:
-        artwork = .getGeneratedArtwork(
-          theme: themePreference,
-          artworkType: .song
-        )
+        placeholderArtwork = .getGeneratedArtwork(theme: themePreference, artworkType: .song)
       case .podcast:
-        artwork = .getGeneratedArtwork(
-          theme: themePreference,
-          artworkType: .podcastEpisode
-        )
+        placeholderArtwork = .getGeneratedArtwork(theme: themePreference, artworkType: .podcastEpisode)
       }
+      backgroundImage.image = placeholderArtwork
+      lastGradientSongID = nil
+      artworkGradientColors = [themePreference.asColor, UIColor.customDarkBackground]
+      applyGradientBackground()
+      return
     }
-    guard let artwork = artwork else { return }
+    
+    // ONLY calculate gradient ONCE per song
+    let currentSongID = playableInfo.uniqueID
+    if currentSongID == lastGradientSongID {
+      return  // Already calculated gradient for this song, skip
+    }
+    lastGradientSongID = currentSongID
+    
+    themePreference = appDelegate.storage.settings.accounts.getSetting(accountInfo).read.themePreference
+    let artworkDisplayPreference = appDelegate.storage.settings.accounts.getSetting(accountInfo).read.artworkDisplayPreference
+    
+    let artwork = LibraryEntityImage.getImageToDisplayImmediately(
+      libraryEntity: playableInfo,
+      themePreference: themePreference,
+      artworkDisplayPreference: artworkDisplayPreference,
+      useCache: true
+    )
+    
     backgroundImage.image = artwork
     artworkGradientColors = (try? artwork.dominantColors(max: 2)) ?? [
       themePreference.asColor,
@@ -204,11 +213,12 @@ extension PopupPlayerVC {
     else { return }
     if curPlayable.uniqueID == downloadNotification.id {
       Task { @MainActor in
-        refreshBackgroundItemArtwork()
         // Refresh UI to update play type icon (shows green when cached)
+        // Don't refresh background artwork here - it was already set when song started
         refresh()
       }
     }
+    // Only refresh gradient if artwork itself was downloaded (not the song file)
     if let artwork = curPlayable.artwork,
        artwork.uniqueID == downloadNotification.id {
       Task { @MainActor in

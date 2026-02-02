@@ -49,6 +49,10 @@ public class ScrobbleSyncer {
 
   private var songToBeScrobbled: Song?
   private var songHasBeenListendEnough = false
+  
+  // Track pending Tasks to cancel them when a new song starts
+  private var pendingSongStartTask: Task<Void, Never>?
+  private var pendingSyncTask: Task<Void, Never>?
 
   init(
     player: PlayerFacade,
@@ -182,6 +186,10 @@ public class ScrobbleSyncer {
   }
 
   private func startSongPlayed() async {
+    // Cancel any pending sync task from previous song
+    pendingSyncTask?.cancel()
+    pendingSyncTask = nil
+    
     await syncSongStopped(clearCurPlaying: true)
 
     guard let curPlaying = player.currentlyPlaying,
@@ -205,14 +213,17 @@ public class ScrobbleSyncer {
 
     startScrobbleTimer(forSong: curPlayingSong, withDuration: currentSongThreshold)
     
-    // Fetch updated song info from server (including playCount)
+    // Sync song info (including lyrics) from server - only called once per song start
     if storage.settings.user.isOnlineMode, networkMonitor.isConnectedToNetwork {
-      Task {
+      pendingSyncTask = Task {
+        guard !Task.isCancelled else { return }
         do {
           try await librarySyncer.sync(song: curPlayingSong)
           os_log("Synced song info from server: %s", log: log, type: .debug, curPlayingSong.displayString)
         } catch {
-          os_log("Failed to sync song info: %s", log: log, type: .debug, error.localizedDescription)
+          if !Task.isCancelled {
+            os_log("Failed to sync song info: %s", log: log, type: .debug, error.localizedDescription)
+          }
         }
       }
     }
@@ -262,7 +273,9 @@ public class ScrobbleSyncer {
 
 extension ScrobbleSyncer: MusicPlayable {
   public func didStartPlayingFromBeginning() {
-    Task { await startSongPlayed() }
+    // Cancel any pending task from previous song to prevent accumulation
+    pendingSongStartTask?.cancel()
+    pendingSongStartTask = Task { await startSongPlayed() }
   }
 
   public func didStartPlaying() {

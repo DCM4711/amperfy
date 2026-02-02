@@ -306,11 +306,20 @@ public class AudioPlayer: NSObject, BackendAudioPlayerNotifiable {
     }
   }
 
+  private var lastPlayInfoSave: Date = .distantPast
+  private let playInfoSaveInterval: TimeInterval = 5.0  // Save play progress every 5 seconds instead of every second
+  
   // BackendAudioPlayerNotifiable
   func didElapsedTimeChange() {
     notifyElapsedTimeChanged()
-    if let currentItem = currentlyPlaying {
-      savePlayInformation(of: currentItem)
+    
+    // Throttle play information saves to reduce Core Data overhead
+    let now = Date()
+    if now.timeIntervalSince(lastPlayInfoSave) >= playInfoSaveInterval {
+      lastPlayInfoSave = now
+      if let currentItem = currentlyPlaying {
+        savePlayInformation(of: currentItem)
+      }
     }
   }
 

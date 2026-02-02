@@ -233,26 +233,26 @@ class BackendAudioPlayer: NSObject {
 
   private func startTimers() {
     stopTimers()
+    
+    // Use DispatchQueue timers instead of creating Tasks every tick
+    // This prevents Task accumulation when main thread is busy
     timerElapsedTimeInterval = Timer.scheduledTimer(
       withTimeInterval: updateElapsedTimeInterval.seconds,
       repeats: true
-    ) { [weak self] timer in
-      Task { @MainActor in
-        guard let self = self else { return }
-        self.checkForPreloadNextPlayerItem()
-        self.retryTemporaryCacheCleanup()
-        self.responder?.didElapsedTimeChange()
-      }
+    ) { [weak self] _ in
+      // Timer already fires on main thread, no need to dispatch again
+      guard let self else { return }
+      self.checkForPreloadNextPlayerItem()
+      self.retryTemporaryCacheCleanup()
+      self.responder?.didElapsedTimeChange()
     }
     timerLyricsTimeInterval = Timer.scheduledTimer(
       withTimeInterval: updateLyricsTimeInterval.seconds,
       repeats: true
-    ) { [weak self] timer in
-      Task { @MainActor in
-        guard let self = self else { return }
-        let cmTime = CMTime(value: Int64(self.elapsedTime * 1_000), timescale: 1_000)
-        self.responder?.didLyricsTimeChange(time: cmTime)
-      }
+    ) { [weak self] _ in
+      guard let self else { return }
+      let cmTime = CMTime(value: Int64(self.elapsedTime * 1_000), timescale: 1_000)
+      self.responder?.didLyricsTimeChange(time: cmTime)
     }
   }
 
@@ -465,6 +465,8 @@ class BackendAudioPlayer: NSObject {
   }
 
   private func restartPlayer() {
+    // Remove audio tap before deallocating the old nodes
+    audioAnalyzer.removeTap()
     player = nil
     initAudioStreamingPlayerAndNodes()
   }
@@ -905,6 +907,11 @@ class BackendAudioPlayer: NSObject {
     }
   }
   
+  /// Tracks retry attempts for each song ID that failed to delete
+  private var cleanupRetryAttempts: [String: Int] = [:]
+  /// Maximum retry attempts before giving up (10 attempts * 5 seconds = 50 seconds)
+  private let maxCleanupRetryAttempts = 10
+  
   /// Cleans up all temporarily cached songs, optionally keeping one
   /// Only removes IDs from the list if the cache was actually deleted
   private func cleanupTemporaryCaches(exceptID: String? = nil) {
@@ -916,15 +923,25 @@ class BackendAudioPlayer: NSObject {
         // Keep the exception ID
         remainingIDs.append(cachedID)
       } else {
-        os_log(.debug, "Attempting to clean up temporary cache for song: %s", cachedID)
         // Only remove from list if deletion was successful
         let wasDeleted = deleteTempCacheCB?(cachedID) ?? false
         if !wasDeleted {
-          // Deletion failed (e.g., download not complete yet), keep in list for later cleanup
-          remainingIDs.append(cachedID)
-          os_log(.debug, "Temporary cache not yet available for deletion, keeping in list: %s", cachedID)
+          // Track retry attempts
+          let attempts = (cleanupRetryAttempts[cachedID] ?? 0) + 1
+          cleanupRetryAttempts[cachedID] = attempts
+          
+          if attempts >= maxCleanupRetryAttempts {
+            // Give up after max attempts - the download likely never completed
+            os_log(.debug, "Giving up on temporary cache cleanup after %d attempts: %s", attempts, cachedID)
+            cleanupRetryAttempts.removeValue(forKey: cachedID)
+            // Don't add to remainingIDs - effectively removing it from the list
+          } else {
+            // Keep in list for later cleanup
+            remainingIDs.append(cachedID)
+          }
         } else {
           os_log(.debug, "Successfully deleted temporary cache: %s", cachedID)
+          cleanupRetryAttempts.removeValue(forKey: cachedID)
         }
       }
     }
