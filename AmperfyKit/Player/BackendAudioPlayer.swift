@@ -109,12 +109,6 @@ class BackendAudioPlayer: NSObject {
   
   // Track the currently playing playable (for switching from stream to cache on seek)
   private var currentPlayable: AbstractPlayable?
-  
-  // Key for storing temporarily cached song IDs in UserDefaults (array of IDs)
-  private static let temporaryCacheKey = "temporarilyCachedPlayableIDs"
-  
-  // Callback to delete cache of a playable by ID, returns true if deleted
-  public var deleteTempCacheCB: ((String) -> Bool)?
 
   private var player: AudioStreamingPlayer?
   private var equalizer: AVAudioUnitEQ?
@@ -243,7 +237,6 @@ class BackendAudioPlayer: NSObject {
       // Timer already fires on main thread, no need to dispatch again
       guard let self else { return }
       self.checkForPreloadNextPlayerItem()
-      self.retryTemporaryCacheCleanup()
       self.responder?.didElapsedTimeChange()
     }
     timerLyricsTimeInterval = Timer.scheduledTimer(
@@ -276,18 +269,7 @@ class BackendAudioPlayer: NSObject {
           Task { @MainActor in
             do {
               try await insertStreamPlayable(playable: nextPreloadedPlayable, queueType: .queue)
-              
-              // Always download streamed songs to enable seeking
-              if !nextPreloadedPlayable.isRadio, nextPreloadedPlayable.isDownloadAvailable,
-                 let accountInfo = nextPreloadedPlayable.account?.info {
-                self.getPlayableDownloaderCB(accountInfo).download(object: nextPreloadedPlayable)
-                
-                // Track as temporarily cached if auto-cache is disabled
-                if !self.isAutoCachePlayedItems {
-                  self.addToTemporaryCacheList(playableID: nextPreloadedPlayable.id)
-                  os_log(.debug, "Temporarily caching preloaded song for seeking: %s", nextPreloadedPlayable.displayString)
-                }
-              }
+              // AVPlayer handles seeking on streamed content natively - no download needed
             } catch {
               self.nextPreloadedPlayable = nil
               self.eventLogger.report(topic: "Player", error: error)
@@ -302,14 +284,6 @@ class BackendAudioPlayer: NSObject {
   private func itemFinishedPlaying() {
     isTriggerReinsertPlayableAllowed = true
     isPreviousPlaylableFinshed = true
-    
-    // Clean up the finished song's temporary cache (if any)
-    // Keep the next preloaded song's cache
-    if let finishedPlayable = currentPlayable {
-      let nextID = nextPreloadedPlayable?.id
-      cleanupTemporaryCaches(exceptID: nextID)
-      os_log(.debug, "Song finished, cleaned up temp caches except: %s", nextID ?? "none")
-    }
     
     if nextPreloadedPlayable != nil {
       isPlaying = true
@@ -368,9 +342,6 @@ class BackendAudioPlayer: NSObject {
     isPlaying = false
     pendingPlayAsset = nil
     currentPlayable = nil
-    
-    // Clean up all temporarily cached songs
-    cleanupTemporaryCaches(exceptID: nil)
     
     clearPlayer()
     audioAnalyzer.stop()
@@ -506,8 +477,8 @@ class BackendAudioPlayer: NSObject {
     playbackRate: PlaybackRate,
     autoStartPlayback: Bool
   ) {
-    // Clean up all temporarily cached songs except the new one
-    cleanupTemporaryCaches(exceptID: playable.id)
+    // Don't clean up on every skip - let the periodic cleanup handle it
+    // This prevents excessive Core Data fetches during rapid skipping
     
     userDefinedPlaybackRate = playbackRate
     player?.rate = Float(userDefinedPlaybackRate.asDouble)
@@ -591,18 +562,7 @@ class BackendAudioPlayer: NSObject {
           try await insertStreamPlayable(playable: playable, autoStartPlayback: self.shouldPlaybackStart)
           self.isPlaying = self.shouldPlaybackStart
           
-          // Always download streamed songs to enable seeking
-          // Track as temporarily cached if auto-cache is disabled
-          if !playable.isRadio, let accountInfo = playable.account?.info {
-            self.getPlayableDownloaderCB(accountInfo).download(object: playable)
-            
-            // Only track as temporary if auto-cache is disabled
-            // (if enabled, user wants to keep it permanently)
-            if !self.isAutoCachePlayedItems {
-              self.addToTemporaryCacheList(playableID: playable.id)
-              os_log(.debug, "Temporarily caching for seeking: %s", playable.displayString)
-            }
-          }
+          // AVPlayer handles seeking on streamed content natively - no download needed
           
           self.responder?.notifyItemPreparationFinished()
         } catch {
@@ -886,94 +846,6 @@ class BackendAudioPlayer: NSObject {
     replayGainPreamp = preamp
     applyReplayGain()
   }
-  
-  /// Adds a playable ID to the temporary cache list
-  private func addToTemporaryCacheList(playableID: String) {
-    var cachedIDs = UserDefaults.standard.stringArray(forKey: Self.temporaryCacheKey) ?? []
-    if !cachedIDs.contains(playableID) {
-      cachedIDs.append(playableID)
-      UserDefaults.standard.set(cachedIDs, forKey: Self.temporaryCacheKey)
-    }
-  }
-  
-  /// Removes a playable ID from the temporary cache list
-  private func removeFromTemporaryCacheList(playableID: String) {
-    var cachedIDs = UserDefaults.standard.stringArray(forKey: Self.temporaryCacheKey) ?? []
-    cachedIDs.removeAll { $0 == playableID }
-    if cachedIDs.isEmpty {
-      UserDefaults.standard.removeObject(forKey: Self.temporaryCacheKey)
-    } else {
-      UserDefaults.standard.set(cachedIDs, forKey: Self.temporaryCacheKey)
-    }
-  }
-  
-  /// Tracks retry attempts for each song ID that failed to delete
-  private var cleanupRetryAttempts: [String: Int] = [:]
-  /// Maximum retry attempts before giving up (10 attempts * 5 seconds = 50 seconds)
-  private let maxCleanupRetryAttempts = 10
-  
-  /// Cleans up all temporarily cached songs, optionally keeping one
-  /// Only removes IDs from the list if the cache was actually deleted
-  private func cleanupTemporaryCaches(exceptID: String? = nil) {
-    let cachedIDs = UserDefaults.standard.stringArray(forKey: Self.temporaryCacheKey) ?? []
-    var remainingIDs: [String] = []
-    
-    for cachedID in cachedIDs {
-      if cachedID == exceptID {
-        // Keep the exception ID
-        remainingIDs.append(cachedID)
-      } else {
-        // Only remove from list if deletion was successful
-        let wasDeleted = deleteTempCacheCB?(cachedID) ?? false
-        if !wasDeleted {
-          // Track retry attempts
-          let attempts = (cleanupRetryAttempts[cachedID] ?? 0) + 1
-          cleanupRetryAttempts[cachedID] = attempts
-          
-          if attempts >= maxCleanupRetryAttempts {
-            // Give up after max attempts - the download likely never completed
-            os_log(.debug, "Giving up on temporary cache cleanup after %d attempts: %s", attempts, cachedID)
-            cleanupRetryAttempts.removeValue(forKey: cachedID)
-            // Don't add to remainingIDs - effectively removing it from the list
-          } else {
-            // Keep in list for later cleanup
-            remainingIDs.append(cachedID)
-          }
-        } else {
-          os_log(.debug, "Successfully deleted temporary cache: %s", cachedID)
-          cleanupRetryAttempts.removeValue(forKey: cachedID)
-        }
-      }
-    }
-    
-    if remainingIDs.isEmpty {
-      UserDefaults.standard.removeObject(forKey: Self.temporaryCacheKey)
-    } else {
-      UserDefaults.standard.set(remainingIDs, forKey: Self.temporaryCacheKey)
-    }
-  }
-  
-  /// Call this on app startup to clean up any orphaned temporary caches
-  /// (e.g., from app termination while playing)
-  public func cleanupOrphanedTemporaryCaches() {
-    cleanupTemporaryCaches(exceptID: nil)
-  }
-  
-  /// Periodically retry cleaning up temporary caches that couldn't be deleted before
-  /// (e.g., because the download wasn't complete yet)
-  private func retryTemporaryCacheCleanup() {
-    // Only retry if there are items in the list and we're not on every single tick
-    // Use a simple counter to only run every 5 seconds instead of every second
-    retryCleanupCounter += 1
-    guard retryCleanupCounter >= 5 else { return }
-    retryCleanupCounter = 0
-    
-    let currentID = currentPlayable?.id
-    cleanupTemporaryCaches(exceptID: currentID)
-  }
-  
-  private var retryCleanupCounter: Int = 0
-
   private func applyReplayGain() {
     guard let replayGain = replayGainNode else { return }
 

@@ -39,20 +39,6 @@ class PlayerUIHandler: NSObject {
   public static let bigButtonImagePointSize: CGFloat = 17
   public static let playAndNextiOSButtonImagePointSize: CGFloat = 15
 
-  // Cache for temporary cache IDs to avoid reading UserDefaults every second
-  private static var cachedTemporaryCacheIDs: [String] = []
-  private static var lastCacheRefresh: Date = .distantPast
-  private static let cacheRefreshInterval: TimeInterval = 2.0
-  
-  private static func isTemporarilyCached(id: String) -> Bool {
-    let now = Date()
-    if now.timeIntervalSince(lastCacheRefresh) >= cacheRefreshInterval {
-      lastCacheRefresh = now
-      cachedTemporaryCacheIDs = UserDefaults.standard.stringArray(forKey: "temporarilyCachedPlayableIDs") ?? []
-    }
-    return cachedTemporaryCacheIDs.contains(id)
-  }
-  
   private var player: PlayerFacade
   private var style: PlayerUIStyle
 
@@ -577,28 +563,18 @@ class PlayerUIHandler: NSObject {
       return contentFormatText
     }
 
-    // Check if this song is only temporarily cached for scrubbing (not user-downloaded)
-    // Use cached value to avoid reading UserDefaults every second
-    let isTemporarilyCached = Self.isTemporarilyCached(id: currentlyPlaying.id)
-    
-    // Check if song is still actually cached on disk (file might have been deleted)
+    // Check if song is cached on disk
     let isStillCached = currentlyPlaying.isCached
     
     if playType == .cache {
-      // Was playing from cache - get bitrate and format from song metadata
+      // Playing from cache - get bitrate and format from song metadata
       displayBitrateInKbps = currentlyPlaying.bitrate / 1000
       formatText = getFormat(contentType: currentlyPlaying.fileContentType)
       
       if isStillCached {
-        if isTemporarilyCached {
-          // Temporarily cached for scrubbing - show green antenna
-          playTypeIcon.image = UIImage.antenna
-          playTypeIcon.tintColor = UIColor.systemGreen
-        } else {
-          // User-downloaded - show downloaded icon
-          playTypeIcon.image = UIImage.cache
-          playTypeIcon.tintColor = .labelColor
-        }
+        // Downloaded - show cache icon
+        playTypeIcon.image = UIImage.cache
+        playTypeIcon.tintColor = .labelColor
       } else {
         // Cache was deleted - show antenna icon
         playTypeIcon.image = UIImage.antenna
@@ -631,16 +607,12 @@ class PlayerUIHandler: NSObject {
       }
       
       // Check if song was downloaded while streaming
-      if isStillCached, !isTemporarilyCached {
-        // User-downloaded while streaming - show downloaded icon
+      if isStillCached {
+        // Downloaded while streaming - show cache icon
         playTypeIcon.image = UIImage.cache
         playTypeIcon.tintColor = .labelColor
-      } else if isStillCached {
-        // Temporarily cached - show green antenna
-        playTypeIcon.image = UIImage.antenna
-        playTypeIcon.tintColor = UIColor.systemGreen
       } else {
-        // Still streaming - show normal antenna
+        // Streaming - show antenna icon
         playTypeIcon.image = UIImage.antenna
         playTypeIcon.tintColor = .labelColor
       }

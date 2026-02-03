@@ -186,24 +186,8 @@ class SongMetadataVC: UIViewController {
     // Download Section - always shown
     var downloadRows: [(String, String)] = []
     
-    // Check if the song was intentionally downloaded by user
-    // A song is user-downloaded if:
-    // 1. It has a completed Download object, AND
-    // 2. Its ID is NOT in the temporary cache list (which tracks songs cached only for scrubbing)
-    isUserDownloaded = false
-    if let song = playable.asSong,
-       let downloadMO = song.managedObject.download {
-      let download = Download(managedObject: downloadMO)
-      if download.isFinishedSuccessfully {
-        // Check if this song is in the temporary cache list
-        let temporaryCacheKey = "temporarilyCachedPlayableIDs"
-        let temporarilyCachedIDs = UserDefaults.standard.stringArray(forKey: temporaryCacheKey) ?? []
-        let isTemporarilyCached = temporarilyCachedIDs.contains(playable.id)
-        
-        // Only mark as user-downloaded if NOT in temporary cache list
-        isUserDownloaded = !isTemporarilyCached
-      }
-    }
+    // Check if the song is downloaded (cached on device)
+    isUserDownloaded = playable.isCached
     
     downloadRows.append(("Downloaded", isUserDownloaded ? "Yes" : "No"))
     
@@ -320,22 +304,10 @@ class SongMetadataVC: UIViewController {
       // Refresh the view
       refreshContent()
     } else {
-      // User wants to download the song permanently
-      // First, remove from temporary cache list if present (so it won't be deleted later)
-      let temporaryCacheKey = "temporarilyCachedPlayableIDs"
-      var cachedIDs = UserDefaults.standard.stringArray(forKey: temporaryCacheKey) ?? []
-      if cachedIDs.contains(playable.id) {
-        cachedIDs.removeAll { $0 == playable.id }
-        if cachedIDs.isEmpty {
-          UserDefaults.standard.removeObject(forKey: temporaryCacheKey)
-        } else {
-          UserDefaults.standard.set(cachedIDs, forKey: temporaryCacheKey)
-        }
-      }
-      
-      // If already cached (temporarily), just keep it - it's now a user download
+      // User wants to download the song
       if playable.isCached {
-        showCopiedToast(message: "Saved to device")
+        // Already cached
+        showCopiedToast(message: "Already downloaded")
         refreshContent()
       } else {
         // Not cached yet, start download
