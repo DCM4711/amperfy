@@ -74,7 +74,9 @@ struct SwipeDisplaySettings {
         return false
       }
       if actionType == .insertPodcastQueue ||
-        actionType == .appendPodcastQueue {
+        actionType == .appendPodcastQueue ||
+        actionType == .insertUserQueue ||
+        actionType == .appendUserQueue {
         return false
       }
     case .podcast:
