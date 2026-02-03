@@ -34,31 +34,12 @@ class SongMetadataVC: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    view.backgroundColor = .systemGroupedBackground
+    // Force dark mode appearance to match context menu style
+    overrideUserInterfaceStyle = .dark
+    view.backgroundColor = UIColor.black.withAlphaComponent(0.7)
     
-    setupNavigationBar()
     setupScrollView()
     buildMetadataContent()
-  }
-  
-  private func setupNavigationBar() {
-    title = "Song Info"
-    
-    // Show close button only on macOS
-    #if targetEnvironment(macCatalyst)
-    let closeButton = UIBarButtonItem(
-      image: UIImage(systemName: "xmark"),
-      style: .plain,
-      target: self,
-      action: #selector(closePressed)
-    )
-    navigationItem.rightBarButtonItem = closeButton
-    #endif
-  }
-  
-  @objc
-  private func closePressed() {
-    dismiss(animated: true)
   }
   
   private func setupScrollView() {
@@ -67,19 +48,19 @@ class SongMetadataVC: UIViewController {
     
     stackView.translatesAutoresizingMaskIntoConstraints = false
     stackView.axis = .vertical
-    stackView.spacing = 0
+    stackView.spacing = 12
     scrollView.addSubview(stackView)
     
     NSLayoutConstraint.activate([
-      scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+      scrollView.topAnchor.constraint(equalTo: view.topAnchor),
       scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
       scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
       scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
       
-      stackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 20),
+      stackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 16),
       stackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 16),
       stackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -16),
-      stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -20),
+      stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -16),
       stackView.widthAnchor.constraint(equalTo: scrollView.widthAnchor, constant: -32),
     ])
   }
@@ -133,7 +114,7 @@ class SongMetadataVC: UIViewController {
       generalRows.append(("Play Count", "\(song.playCount)"))
     }
     
-    addSection(title: "General", rows: generalRows)
+    addSection(title: "Song Info", rows: generalRows)
     
     // Technical Section
     var technicalRows: [(String, String)] = []
@@ -199,11 +180,11 @@ class SongMetadataVC: UIViewController {
   }
   
   private func addDownloadSection(rows: [(String, String)], isDownloaded: Bool) {
-    // Section header
+    // Section header - context menu style
     let headerLabel = UILabel()
     headerLabel.text = "DOWNLOAD"
-    headerLabel.font = .systemFont(ofSize: 13, weight: .regular)
-    headerLabel.textColor = .secondaryLabel
+    headerLabel.font = .systemFont(ofSize: 12, weight: .medium)
+    headerLabel.textColor = UIColor.white.withAlphaComponent(0.5)
     headerLabel.translatesAutoresizingMaskIntoConstraints = false
     
     let headerContainer = UIView()
@@ -211,18 +192,19 @@ class SongMetadataVC: UIViewController {
     headerContainer.addSubview(headerLabel)
     
     NSLayoutConstraint.activate([
-      headerLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 16),
-      headerLabel.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
-      headerLabel.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: 24),
-      headerLabel.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -8),
+      headerLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 12),
+      headerLabel.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -12),
+      headerLabel.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: 8),
+      headerLabel.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -4),
     ])
     
     stackView.addArrangedSubview(headerContainer)
     
-    // Section content container with rounded corners
+    // Section content container - context menu style
     let sectionContainer = UIView()
-    sectionContainer.backgroundColor = .secondarySystemGroupedBackground
-    sectionContainer.layer.cornerRadius = 10
+    sectionContainer.backgroundColor = UIColor.white.withAlphaComponent(0.12)
+    sectionContainer.layer.cornerRadius = 14
+    sectionContainer.clipsToBounds = true
     sectionContainer.translatesAutoresizingMaskIntoConstraints = false
     
     let rowsStackView = UIStackView()
@@ -240,8 +222,7 @@ class SongMetadataVC: UIViewController {
     
     // Add info rows
     for (index, row) in rows.enumerated() {
-      let showCopyIcon = row.0 == "ID"
-      let rowView = createRowView(label: row.0, value: row.1, isLast: false, showCopyIcon: showCopyIcon)
+      let rowView = createRowView(label: row.0, value: row.1, isLast: false)
       rowsStackView.addArrangedSubview(rowView)
     }
     
@@ -331,11 +312,11 @@ class SongMetadataVC: UIViewController {
   }
   
   private func addSection(title: String, rows: [(String, String)]) {
-    // Section header
+    // Section header - context menu style (smaller, dimmer)
     let headerLabel = UILabel()
     headerLabel.text = title.uppercased()
-    headerLabel.font = .systemFont(ofSize: 13, weight: .regular)
-    headerLabel.textColor = .secondaryLabel
+    headerLabel.font = .systemFont(ofSize: 12, weight: .medium)
+    headerLabel.textColor = UIColor.white.withAlphaComponent(0.5)
     headerLabel.translatesAutoresizingMaskIntoConstraints = false
     
     let headerContainer = UIView()
@@ -343,18 +324,19 @@ class SongMetadataVC: UIViewController {
     headerContainer.addSubview(headerLabel)
     
     NSLayoutConstraint.activate([
-      headerLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 16),
-      headerLabel.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
-      headerLabel.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: 24),
-      headerLabel.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -8),
+      headerLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 12),
+      headerLabel.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -12),
+      headerLabel.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: 8),
+      headerLabel.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -4),
     ])
     
     stackView.addArrangedSubview(headerContainer)
     
-    // Section content container with rounded corners
+    // Section content container - context menu style
     let sectionContainer = UIView()
-    sectionContainer.backgroundColor = .secondarySystemGroupedBackground
-    sectionContainer.layer.cornerRadius = 10
+    sectionContainer.backgroundColor = UIColor.white.withAlphaComponent(0.12)
+    sectionContainer.layer.cornerRadius = 14
+    sectionContainer.clipsToBounds = true
     sectionContainer.translatesAutoresizingMaskIntoConstraints = false
     
     let rowsStackView = UIStackView()
@@ -371,8 +353,7 @@ class SongMetadataVC: UIViewController {
     ])
     
     for (index, row) in rows.enumerated() {
-      let showCopyIcon = row.0 == "ID"
-      let rowView = createRowView(label: row.0, value: row.1, isLast: index == rows.count - 1, showCopyIcon: showCopyIcon)
+      let rowView = createRowView(label: row.0, value: row.1, isLast: index == rows.count - 1)
       rowsStackView.addArrangedSubview(rowView)
     }
     
@@ -385,15 +366,15 @@ class SongMetadataVC: UIViewController {
     
     let labelLabel = UILabel()
     labelLabel.text = label
-    labelLabel.font = .systemFont(ofSize: 16)
-    labelLabel.textColor = .label
+    labelLabel.font = .systemFont(ofSize: 15)
+    labelLabel.textColor = .white
     labelLabel.translatesAutoresizingMaskIntoConstraints = false
     labelLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
     
     let valueLabel = UILabel()
     valueLabel.text = value
-    valueLabel.font = .systemFont(ofSize: 16)
-    valueLabel.textColor = .secondaryLabel
+    valueLabel.font = .systemFont(ofSize: 15)
+    valueLabel.textColor = UIColor.white.withAlphaComponent(0.6)
     valueLabel.textAlignment = .right
     valueLabel.numberOfLines = 2
     valueLabel.lineBreakMode = .byTruncatingMiddle
@@ -406,7 +387,7 @@ class SongMetadataVC: UIViewController {
     var copyIcon: UIImageView?
     if showCopyIcon {
       let icon = UIImageView(image: UIImage(systemName: "doc.on.doc"))
-      icon.tintColor = .secondaryLabel
+      icon.tintColor = UIColor.white.withAlphaComponent(0.6)
       icon.translatesAutoresizingMaskIntoConstraints = false
       icon.contentMode = .scaleAspectFit
       container.addSubview(icon)
@@ -414,7 +395,7 @@ class SongMetadataVC: UIViewController {
     }
     
     let separator = UIView()
-    separator.backgroundColor = .separator
+    separator.backgroundColor = UIColor.white.withAlphaComponent(0.15)
     separator.translatesAutoresizingMaskIntoConstraints = false
     separator.isHidden = isLast
     container.addSubview(separator)
@@ -507,5 +488,16 @@ class SongMetadataVC: UIViewController {
         toast.removeFromSuperview()
       }
     }
+  }
+}
+
+// MARK: - UIPopoverPresentationControllerDelegate
+
+extension SongMetadataVC: UIPopoverPresentationControllerDelegate {
+  func adaptivePresentationStyle(
+    for controller: UIPresentationController,
+    traitCollection: UITraitCollection
+  ) -> UIModalPresentationStyle {
+    .none  // Keep popover style on iPhone too
   }
 }

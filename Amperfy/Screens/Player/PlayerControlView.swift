@@ -98,6 +98,8 @@ class PlayerControlView: UIView {
     #endif
   }
 
+  private var infoButton: UIButton!
+  
   func prepare(toWorkOnRootView: PopupPlayerVC?) {
     rootView = toWorkOnRootView
 
@@ -110,8 +112,12 @@ class PlayerControlView: UIView {
     skipForwardButton.tintColor = .customDarkLabel
     airplayButton.tintColor = .customDarkLabel
     playerModeButton.tintColor = .customDarkLabel
-    volumeButton.tintColor = .customDarkLabel
     optionsButton.imageView?.tintColor = .customDarkLabel
+    
+    // Hide volume button and replace with info button
+    volumeButton.isHidden = true
+    setupInfoButton()
+    
     refreshPlayer()
     playerHandler?.refreshPlayerOptions(
       optionsButton: optionsButton,
@@ -132,6 +138,49 @@ class PlayerControlView: UIView {
         )
       }
     )
+  }
+  
+  private func setupInfoButton() {
+    infoButton = UIButton(type: .system)
+    infoButton.translatesAutoresizingMaskIntoConstraints = false
+    
+    let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
+    let infoImage = UIImage(systemName: "info.circle", withConfiguration: config)
+    infoButton.setImage(infoImage, for: .normal)
+    infoButton.tintColor = .customDarkLabel
+    infoButton.contentEdgeInsets = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2)
+    
+    infoButton.addTarget(self, action: #selector(infoButtonPressed), for: .touchUpInside)
+    
+    // Insert info button at the same position as volume button in the stack view
+    if let volumeIndex = optionsStackView.arrangedSubviews.firstIndex(of: volumeButton) {
+      optionsStackView.insertArrangedSubview(infoButton, at: volumeIndex)
+    }
+    
+    NSLayoutConstraint.activate([
+      infoButton.widthAnchor.constraint(equalToConstant: 28),
+      infoButton.heightAnchor.constraint(equalToConstant: 28),
+    ])
+  }
+  
+  @objc
+  private func infoButtonPressed() {
+    guard let playable = player.currentlyPlaying else { return }
+    let metadataVC = SongMetadataVC()
+    metadataVC.playable = playable
+    
+    metadataVC.modalPresentationStyle = .popover
+    metadataVC.preferredContentSize = CGSize(width: 320, height: 480)
+    
+    if let popover = metadataVC.popoverPresentationController {
+      popover.sourceView = infoButton
+      popover.sourceRect = infoButton.bounds
+      popover.permittedArrowDirections = .down
+      popover.delegate = metadataVC
+      popover.backgroundColor = .clear
+    }
+    
+    rootView?.present(metadataVC, animated: true)
   }
 
   @IBAction

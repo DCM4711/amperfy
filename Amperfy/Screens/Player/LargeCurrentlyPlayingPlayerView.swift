@@ -240,7 +240,7 @@ class LargeCurrentlyPlayingPlayerView: UIView {
     }
 
     setupRatingView()
-    setupInfoButton()
+    // Info button removed - now accessible from player controls bar
     addSwipeGesturesToArtwork()
 
     displayElement = getDisplayElementBasedOnConfig()
