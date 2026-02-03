@@ -34,9 +34,14 @@ class SongMetadataVC: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    // Force dark mode appearance
-    overrideUserInterfaceStyle = .dark
-    view.backgroundColor = UIColor.black.withAlphaComponent(0.45)
+    // Dynamic background based on light/dark mode
+    view.backgroundColor = UIColor { traitCollection in
+      if traitCollection.userInterfaceStyle == .dark {
+        return UIColor.black.withAlphaComponent(0.45)
+      } else {
+        return UIColor.white.withAlphaComponent(0.45)
+      }
+    }
     
     setupScrollView()
     buildMetadataContent()
@@ -180,11 +185,11 @@ class SongMetadataVC: UIViewController {
   }
   
   private func addDownloadSection(rows: [(String, String)], isDownloaded: Bool) {
-    // Section header - context menu style
+    // Section header
     let headerLabel = UILabel()
     headerLabel.text = "DOWNLOAD"
     headerLabel.font = .systemFont(ofSize: 12, weight: .medium)
-    headerLabel.textColor = UIColor.white.withAlphaComponent(0.5)
+    headerLabel.textColor = .secondaryLabel
     headerLabel.translatesAutoresizingMaskIntoConstraints = false
     
     let headerContainer = UIView()
@@ -245,7 +250,7 @@ class SongMetadataVC: UIViewController {
     } else {
       config.title = "Download to Device"
       config.image = UIImage(systemName: "arrow.down.circle")
-      config.baseForegroundColor = .white
+      config.baseForegroundColor = .label
     }
     
     let button = UIButton(configuration: config)
@@ -310,11 +315,11 @@ class SongMetadataVC: UIViewController {
   }
   
   private func addSection(title: String, rows: [(String, String)]) {
-    // Section header - context menu style (smaller, dimmer)
+    // Section header
     let headerLabel = UILabel()
     headerLabel.text = title.uppercased()
     headerLabel.font = .systemFont(ofSize: 12, weight: .medium)
-    headerLabel.textColor = UIColor.white.withAlphaComponent(0.5)
+    headerLabel.textColor = .secondaryLabel
     headerLabel.translatesAutoresizingMaskIntoConstraints = false
     
     let headerContainer = UIView()
@@ -363,14 +368,14 @@ class SongMetadataVC: UIViewController {
     let labelLabel = UILabel()
     labelLabel.text = label
     labelLabel.font = .systemFont(ofSize: 15)
-    labelLabel.textColor = .white
+    labelLabel.textColor = .label
     labelLabel.translatesAutoresizingMaskIntoConstraints = false
     labelLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
     
     let valueLabel = UILabel()
     valueLabel.text = value
     valueLabel.font = .systemFont(ofSize: 15)
-    valueLabel.textColor = UIColor.white.withAlphaComponent(0.6)
+    valueLabel.textColor = .secondaryLabel
     valueLabel.textAlignment = .right
     valueLabel.numberOfLines = 2
     valueLabel.lineBreakMode = .byTruncatingMiddle
@@ -383,7 +388,7 @@ class SongMetadataVC: UIViewController {
     var copyIcon: UIImageView?
     if showCopyIcon {
       let icon = UIImageView(image: UIImage(systemName: "doc.on.doc"))
-      icon.tintColor = UIColor.white.withAlphaComponent(0.6)
+      icon.tintColor = .secondaryLabel
       icon.translatesAutoresizingMaskIntoConstraints = false
       icon.contentMode = .scaleAspectFit
       container.addSubview(icon)
@@ -391,7 +396,7 @@ class SongMetadataVC: UIViewController {
     }
     
     let separator = UIView()
-    separator.backgroundColor = UIColor.white.withAlphaComponent(0.15)
+    separator.backgroundColor = .separator
     separator.translatesAutoresizingMaskIntoConstraints = false
     separator.isHidden = isLast
     container.addSubview(separator)
@@ -455,8 +460,14 @@ class SongMetadataVC: UIViewController {
     let toast = UILabel()
     toast.text = message
     toast.font = .systemFont(ofSize: 14, weight: .medium)
-    toast.textColor = .white
-    toast.backgroundColor = UIColor.black.withAlphaComponent(0.75)
+    toast.textColor = UIColor { traitCollection in
+      traitCollection.userInterfaceStyle == .dark ? .white : .black
+    }
+    toast.backgroundColor = UIColor { traitCollection in
+      traitCollection.userInterfaceStyle == .dark
+        ? UIColor.black.withAlphaComponent(0.75)
+        : UIColor.white.withAlphaComponent(0.9)
+    }
     toast.textAlignment = .center
     toast.layer.cornerRadius = 8
     toast.clipsToBounds = true
