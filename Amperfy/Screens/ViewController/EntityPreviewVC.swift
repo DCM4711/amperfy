@@ -69,18 +69,23 @@ class EntityPreviewActionBuilder {
   private var isGoToSiteUrl = false
   private var isShowPodcastDetails = false
   private var isShowSongDetails = false
+  private var isShowCopyId = true
+
+  private var removeFromPlaylistCb: (() -> Void)?
 
   init(
     container: PlayableContainable,
     on rootView: UIViewController,
     playContextCb: GetPlayContextCallback? = nil,
-    playerIndexCb: GetPlayerIndexCallback? = nil
+    playerIndexCb: GetPlayerIndexCallback? = nil,
+    removeFromPlaylistCb: (() -> Void)? = nil
   ) {
     self.appDelegate = (UIApplication.shared.delegate as! AppDelegate)
     self.entityContainer = container
     self.rootView = rootView
     self.playContextCb = playContextCb
     self.playerIndexCb = playerIndexCb
+    self.removeFromPlaylistCb = removeFromPlaylistCb
   }
 
   public func createMenu() -> UIMenu {
@@ -144,6 +149,9 @@ class EntityPreviewActionBuilder {
     if !ratingFavActions.isEmpty {
       menuActions.append(UIMenu(options: .displayInline, children: ratingFavActions))
     }
+    if let removeFromPlaylistCb = removeFromPlaylistCb {
+      elementHandlingActions.append(createRemoveFromPlaylistAction(callback: removeFromPlaylistCb))
+    }
     if isAddToPlaylist {
       elementHandlingActions.append(createAddToPlaylistAction())
     }
@@ -162,7 +170,7 @@ class EntityPreviewActionBuilder {
     if !elementHandlingActions.isEmpty {
       menuActions.append(UIMenu(options: .displayInline, children: elementHandlingActions))
     }
-    if appDelegate.storage.settings.user.isShowDetailedInfo {
+    if isShowCopyId, appDelegate.storage.settings.user.isShowDetailedInfo {
       menuActions.append(createCopyIdToClipboardAction())
     }
 
@@ -234,16 +242,8 @@ class EntityPreviewActionBuilder {
   }
 
   private func configureFor(song: Song) {
-    isPlay = !(
-      (playContextCb == nil) ||
-        (!song.isCached && appDelegate.storage.settings.user.isOfflineMode)
-    )
-    isShuffle = !(
-      (playContextCb == nil) ||
-        playerIndexCb != nil ||
-        (!song.isCached && appDelegate.storage.settings.user.isOfflineMode)
-    ) &&
-      appDelegate.storage.settings.user.isPlayerShuffleButtonEnabled
+    isPlay = false
+    isShuffle = false
     isMusicQueue = !(
       (playContextCb == nil) ||
         playerIndexCb != nil ||
@@ -256,7 +256,8 @@ class EntityPreviewActionBuilder {
     isDeleteOnServer = false
     isGoToSiteUrl = false
     isShowPodcastDetails = false
-    isShowSongDetails = true
+    isShowSongDetails = false
+    isShowCopyId = false
   }
 
   private func configureFor(podcastEpisode: PodcastEpisode) {
@@ -576,6 +577,12 @@ class EntityPreviewActionBuilder {
       } catch {
         self.appDelegate.eventLogger.report(topic: "Artist Rating Sync", error: error)
       }}
+    }
+  }
+
+  private func createRemoveFromPlaylistAction(callback: @escaping () -> Void) -> UIAction {
+    UIAction(title: "Remove from Playlist", image: .trash, attributes: .destructive) { action in
+      callback()
     }
   }
 

@@ -89,6 +89,7 @@ class PlayableTableCell: BasicTableCell {
   private var style = PlayableTableCellStyle.none
   private var playerIndexCb: GetPlayerIndexFromTableCellCallback?
   private var playContextCb: GetPlayContextFromTableCellCallback?
+  private var removeFromPlaylistCb: (() -> Void)?
   private var playable: AbstractPlayable?
   private var download: Download?
   private var rootView: UIViewController?
@@ -246,7 +247,8 @@ class PlayableTableCell: BasicTableCell {
     playerIndexCb: GetPlayerIndexFromTableCellCallback? = nil,
     isDislayAlbumTrackNumberStyle: Bool = false,
     download: Download? = nil,
-    isMarked: Bool = false
+    isMarked: Bool = false,
+    removeFromPlaylistCb: (() -> Void)? = nil
   ) {
     if playIndicator?.rootViewTypeName != rootView.typeName {
       playIndicator = PlayIndicator(rootViewTypeName: rootView.typeName)
@@ -256,6 +258,7 @@ class PlayableTableCell: BasicTableCell {
     self.displayMode = displayMode
     self.playContextCb = playContextCb
     self.playerIndexCb = playerIndexCb
+    self.removeFromPlaylistCb = removeFromPlaylistCb
     self.rootView = rootView
     self.isDislayAlbumTrackNumberStyle = isDislayAlbumTrackNumberStyle
     self.download = download
@@ -416,12 +419,14 @@ class PlayableTableCell: BasicTableCell {
       if let rootView = rootView {
         let playContext = playContextCb != nil ? { self.playContextCb?(self) } : nil
         let playIndex = playerIndexCb != nil ? { self.playerIndexCb?(self) } : nil
+        let removeFromPlaylist = removeFromPlaylistCb
         optionsButton.menu = UIMenu.lazyMenu {
           EntityPreviewActionBuilder(
             container: playable,
             on: rootView,
             playContextCb: playContext,
-            playerIndexCb: playIndex
+            playerIndexCb: playIndex,
+            removeFromPlaylistCb: removeFromPlaylist
           ).createMenuActions()
         }
       }
