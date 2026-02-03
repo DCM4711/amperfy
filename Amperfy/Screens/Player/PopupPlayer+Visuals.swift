@@ -155,13 +155,13 @@ extension PopupPlayerVC {
     // Check if we're in dark mode
     let isDarkMode = traitCollection.userInterfaceStyle == .dark
     
-    // Darken colors for dark mode (reduce brightness to ~35%)
+    // Darken colors for dark mode (reduce brightness to ~20%)
     let adjustedColors: [UIColor] = artworkGradientColors.map { color in
       if isDarkMode {
         var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         color.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
         // Reduce brightness significantly for dark mode
-        let darkenedBrightness = b * 0.35
+        let darkenedBrightness = b * 0.20
         return UIColor(hue: h, saturation: s, brightness: darkenedBrightness, alpha: a)
       } else {
         return color
