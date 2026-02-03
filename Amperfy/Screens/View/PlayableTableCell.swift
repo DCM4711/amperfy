@@ -475,12 +475,15 @@ class PlayableTableCell: BasicTableCell {
     guard let playable = playable else { return }
     if let playerIndex = playerIndexCb?(self) {
       appDelegate.player.play(playerIndex: playerIndex)
-    } else if let context = playContextCb?(self),
+    } else if playContextCb != nil,
               playable.isCached || appDelegate.storage.settings.user.isOnlineMode {
       animateActivation()
       hideSearchBarKeyboardInRootView()
       Haptics.success.vibrate(isHapticsEnabled: appDelegate.storage.settings.user.isHapticsEnabled)
-      appDelegate.player.play(context: context)
+      // Insert the song into the queue and play it immediately
+      appDelegate.player.insertContextQueue(playables: [playable])
+      appDelegate.player.playNext()
+      appDelegate.player.play()
     }
   }
 
