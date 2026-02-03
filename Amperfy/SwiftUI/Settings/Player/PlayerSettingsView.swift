@@ -108,13 +108,21 @@ struct PlayerSettingsView: View {
           footer: "Automatically normalize track volume based on replay gain information for consistent loudness."
         )
 
-        // General Settings
-        SettingsSection {
+        // Auto Cache Settings
+        SettingsSection(content: {
           SettingsCheckBoxRow(
             title: "Auto cache played Songs",
             isOn: $settings.isPlayerAutoCachePlayedItems
           )
-        }
+          SettingsCheckBoxRow(
+            title: "Newest Songs",
+            isOn: $settings.isAutoCacheLatestSongs
+          )
+          SettingsCheckBoxRow(
+            title: "Newest Podcast Episodes",
+            isOn: $settings.isAutoCacheLatestPodcastEpisodes
+          )
+        }, header: "Auto Cache")
 
         // Streaming Format Settings
         SettingsSection(

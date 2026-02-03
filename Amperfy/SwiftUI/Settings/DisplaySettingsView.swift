@@ -33,6 +33,12 @@ struct DisplaySettingsView: View {
     appDelegate.setAppAppearanceMode(style: style)
   }
 
+  func setThemePreference(preference: ThemePreference) {
+    settings.themePreference = preference
+    appDelegate.setAppTheme(color: preference.asColor)
+    appDelegate.applyAppThemeToAlreadyLoadedViews()
+  }
+
   var body: some View {
     ZStack {
       SettingsList {
@@ -50,6 +56,28 @@ struct DisplaySettingsView: View {
               }
               Button("Dark") {
                 setAppearanceMode(style: .dark)
+              }
+            }
+          }
+          SettingsRow(title: "Theme Color") {
+            Menu(settings.themePreference.description) {
+              Button(ThemePreference.blue.description) {
+                setThemePreference(preference: .blue)
+              }
+              Button(ThemePreference.green.description) {
+                setThemePreference(preference: .green)
+              }
+              Button(ThemePreference.red.description) {
+                setThemePreference(preference: .red)
+              }
+              Button(ThemePreference.yellow.description) {
+                setThemePreference(preference: .yellow)
+              }
+              Button(ThemePreference.orange.description) {
+                setThemePreference(preference: .orange)
+              }
+              Button(ThemePreference.purple.description) {
+                setThemePreference(preference: .purple)
               }
             }
           }
@@ -139,7 +167,7 @@ struct DisplaySettingsView: View {
         )
       }
     }
-    .navigationTitle("Display")
+    .navigationTitle("Display & Interaction")
     .navigationBarTitleDisplayMode(.inline)
   }
 }

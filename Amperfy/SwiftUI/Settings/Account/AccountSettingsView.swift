@@ -34,12 +34,6 @@ struct AccountSettingsView: View {
   @EnvironmentObject
   var settings: Settings
 
-  func setThemePreference(preference: ThemePreference) {
-    settings.themePreference = preference
-    appDelegate.setAppTheme(color: preference.asColor)
-    appDelegate.applyAppThemeToAlreadyLoadedViews()
-  }
-
   private func logout(accountInfo: AccountInfo) {
     appDelegate.closeAllButActiveMainTabs()
     if appDelegate.storage.settings.accounts.allAccounts.count <= 1 {
@@ -110,42 +104,6 @@ struct AccountSettingsView: View {
               )
             }
           }
-
-          SettingsSection {
-            SettingsRow(title: "Theme Color") {
-              Menu(settings.themePreference.description) {
-                Button(ThemePreference.blue.description) {
-                  setThemePreference(preference: .blue)
-                }
-                Button(ThemePreference.green.description) {
-                  setThemePreference(preference: .green)
-                }
-                Button(ThemePreference.red.description) {
-                  setThemePreference(preference: .red)
-                }
-                Button(ThemePreference.yellow.description) {
-                  setThemePreference(preference: .yellow)
-                }
-                Button(ThemePreference.orange.description) {
-                  setThemePreference(preference: .orange)
-                }
-                Button(ThemePreference.purple.description) {
-                  setThemePreference(preference: .purple)
-                }
-              }
-            }
-          }
-
-          SettingsSection(content: {
-            SettingsCheckBoxRow(
-              title: "Newest Songs",
-              isOn: $settings.isAutoCacheLatestSongs
-            )
-            SettingsCheckBoxRow(
-              title: "Newest Podcast Episodes",
-              isOn: $settings.isAutoCacheLatestPodcastEpisodes
-            )
-          }, header: "Auto Cache")
 
           // Scrobbling is always enabled - server will increment playcount
           // when songs are played for more than 50% (or 4 min)
