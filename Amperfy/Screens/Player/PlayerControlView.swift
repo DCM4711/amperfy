@@ -99,24 +99,31 @@ class PlayerControlView: UIView {
   }
 
   private var infoButton: UIButton!
+  private var themeColor: UIColor = .customDarkLabel
   
   func prepare(toWorkOnRootView: PopupPlayerVC?) {
     rootView = toWorkOnRootView
 
     playerHandler = PlayerUIHandler(player: player, style: .popupPlayer)
 
+    // Get theme color from account settings
+    themeColor = appDelegate.storage.settings.accounts.activeSetting.read.themePreference.asColor
+
     playButton.imageView?.tintColor = .customDarkLabel
     previousButton.tintColor = .customDarkLabel
     nextButton.tintColor = .customDarkLabel
     skipBackwardButton.tintColor = .customDarkLabel
     skipForwardButton.tintColor = .customDarkLabel
-    airplayButton.tintColor = .customDarkLabel
     playerModeButton.tintColor = .customDarkLabel
-    optionsButton.imageView?.tintColor = .customDarkLabel
+    
+    // Use theme color for the 4 bottom-right buttons
+    airplayButton.tintColor = themeColor
+    displayPlaylistButton.tintColor = themeColor
+    optionsButton.tintColor = themeColor
     
     // Hide volume button and replace with info button
     volumeButton.isHidden = true
-    setupInfoButton()
+    setupInfoButton(themeColor: themeColor)
     
     refreshPlayer()
     playerHandler?.refreshPlayerOptions(
@@ -140,14 +147,14 @@ class PlayerControlView: UIView {
     )
   }
   
-  private func setupInfoButton() {
+  private func setupInfoButton(themeColor: UIColor) {
     infoButton = UIButton(type: .system)
     infoButton.translatesAutoresizingMaskIntoConstraints = false
     
     let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
     let infoImage = UIImage(systemName: "info.circle", withConfiguration: config)
     infoButton.setImage(infoImage, for: .normal)
-    infoButton.tintColor = .customDarkLabel
+    infoButton.tintColor = themeColor
     infoButton.contentEdgeInsets = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2)
     
     infoButton.addTarget(self, action: #selector(infoButtonPressed), for: .touchUpInside)
@@ -279,7 +286,7 @@ class PlayerControlView: UIView {
   @IBAction
   func displayPlaylistPressed() {
     rootView?.switchDisplayStyleOptionPersistent()
-    playerHandler?.refreshDisplayPlaylistButton(displayPlaylistButton: displayPlaylistButton)
+    playerHandler?.refreshDisplayPlaylistButton(displayPlaylistButton: displayPlaylistButton, themeColor: themeColor)
     playerHandler?.refreshPlayerOptions(
       optionsButton: optionsButton,
       menuCreateCB: createPlayerOptionsMenu
@@ -317,7 +324,7 @@ class PlayerControlView: UIView {
       liveLabel: liveLabel
     )
     playerHandler?.refreshPrevNextButtons(previousButton: previousButton, nextButton: nextButton)
-    playerHandler?.refreshDisplayPlaylistButton(displayPlaylistButton: displayPlaylistButton)
+    playerHandler?.refreshDisplayPlaylistButton(displayPlaylistButton: displayPlaylistButton, themeColor: themeColor)
     refreshPlayerModeChangeButton()
   }
 

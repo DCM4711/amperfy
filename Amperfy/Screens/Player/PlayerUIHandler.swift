@@ -216,14 +216,14 @@ class PlayerUIHandler: NSObject {
     shuffleButton.isSelected = player.isShuffle
   }
 
-  func refreshDisplayPlaylistButton(displayPlaylistButton: UIButton) {
+  func refreshDisplayPlaylistButton(displayPlaylistButton: UIButton, themeColor: UIColor? = nil) {
     let isSelected = appDelegate.storage.settings.user.playerDisplayStyle == .compact
 
     switch style {
     case .miniPlayeriOS, .miniPlayerMac:
       displayPlaylistButton.tintColor = isSelected ? .tintColor : .customDarkLabel
     case .popupPlayer:
-      var config = UIButton.Configuration.player(isSelected: isSelected)
+      var config = UIButton.Configuration.player(isSelected: isSelected, themeColor: themeColor)
       config.image = .playlistDisplayStyle
       displayPlaylistButton.isSelected = isSelected
       displayPlaylistButton.configuration = config

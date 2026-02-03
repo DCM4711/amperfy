@@ -232,16 +232,17 @@ extension UIColor {
 }
 
 extension UIButton.Configuration {
-  static func player(isSelected: Bool) -> UIButton.Configuration {
+  static func player(isSelected: Bool, themeColor: UIColor? = nil) -> UIButton.Configuration {
     var config = UIButton.Configuration.tinted()
+    let foregroundColor = themeColor ?? .customDarkLabel
     if isSelected {
-      config.background.strokeColor = .customDarkLabel
+      config.background.strokeColor = foregroundColor
       config.background.strokeWidth = 1.0
       config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(scale: .medium)
     }
     config.buttonSize = .small
-    config.baseForegroundColor = !isSelected ? .customDarkLabel : .customDarkBackground
-    config.baseBackgroundColor = !isSelected ? .clear : .customDarkLabel
+    config.baseForegroundColor = !isSelected ? foregroundColor : .customDarkBackground
+    config.baseBackgroundColor = !isSelected ? .clear : foregroundColor
     config.cornerStyle = .medium
     return config
   }

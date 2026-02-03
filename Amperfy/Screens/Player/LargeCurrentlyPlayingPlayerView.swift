@@ -205,6 +205,10 @@ class LargeCurrentlyPlayingPlayerView: UIView {
     titleLabel.applyAmperfyStyle()
     albumLabel.applyAmperfyStyle()
     artistLabel.applyAmperfyStyle()
+    
+    // Use theme color for artist name
+    let themeColor = appDelegate.storage.settings.accounts.activeSetting.read.themePreference.asColor
+    artistLabel.textColor = themeColor
 
     lyricsView = LyricsView()
     lyricsView!.frame = upperContainerView.bounds
