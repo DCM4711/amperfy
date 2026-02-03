@@ -56,7 +56,7 @@ extension UIColor {
   static let customDarkBackground: UIColor = UIColor { traitCollection in
     if traitCollection.userInterfaceStyle == .dark {
       // 90% black = 10% white
-      return UIColor(white: 0.1, alpha: 1.0)
+      return UIColor(white: 0.05, alpha: 1.0)
     } else {
       return UIColor.systemBackground
     }
@@ -66,7 +66,7 @@ extension UIColor {
   static let customDarkSecondaryBackground: UIColor = UIColor { traitCollection in
     if traitCollection.userInterfaceStyle == .dark {
       // Slightly lighter than primary background
-      return UIColor(white: 0.15, alpha: 1.0)
+      return UIColor(white: 0.1, alpha: 1.0)
     } else {
       return UIColor.secondarySystemBackground
     }
@@ -76,7 +76,7 @@ extension UIColor {
   static let customDarkTertiaryBackground: UIColor = UIColor { traitCollection in
     if traitCollection.userInterfaceStyle == .dark {
       // Slightly lighter than secondary background
-      return UIColor(white: 0.2, alpha: 1.0)
+      return UIColor(white: 0.15, alpha: 1.0)
     } else {
       return UIColor.tertiarySystemBackground
     }

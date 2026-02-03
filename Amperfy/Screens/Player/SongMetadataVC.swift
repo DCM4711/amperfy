@@ -34,9 +34,9 @@ class SongMetadataVC: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    // Force dark mode appearance to match context menu style
+    // Force dark mode appearance
     overrideUserInterfaceStyle = .dark
-    view.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+    view.backgroundColor = UIColor.black.withAlphaComponent(0.45)
     
     setupScrollView()
     buildMetadataContent()
@@ -200,11 +200,9 @@ class SongMetadataVC: UIViewController {
     
     stackView.addArrangedSubview(headerContainer)
     
-    // Section content container - context menu style
+    // Section content container
     let sectionContainer = UIView()
-    sectionContainer.backgroundColor = UIColor.white.withAlphaComponent(0.12)
-    sectionContainer.layer.cornerRadius = 14
-    sectionContainer.clipsToBounds = true
+    sectionContainer.backgroundColor = .clear
     sectionContainer.translatesAutoresizingMaskIntoConstraints = false
     
     let rowsStackView = UIStackView()
@@ -332,11 +330,9 @@ class SongMetadataVC: UIViewController {
     
     stackView.addArrangedSubview(headerContainer)
     
-    // Section content container - context menu style
+    // Section content container
     let sectionContainer = UIView()
-    sectionContainer.backgroundColor = UIColor.white.withAlphaComponent(0.12)
-    sectionContainer.layer.cornerRadius = 14
-    sectionContainer.clipsToBounds = true
+    sectionContainer.backgroundColor = .clear
     sectionContainer.translatesAutoresizingMaskIntoConstraints = false
     
     let rowsStackView = UIStackView()
