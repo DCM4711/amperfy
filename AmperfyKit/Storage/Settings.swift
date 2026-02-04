@@ -100,7 +100,7 @@ public struct UserSettings: Sendable, Codable {
     set { _isShowArtistDuration = newValue }
   }
 
-  private var _isShowRating: Bool = true
+  private var _isShowRating: Bool = false
   public var isShowRating: Bool {
     get { _isShowRating }
     set { _isShowRating = newValue }
