@@ -479,16 +479,19 @@ class PlayableTableCell: BasicTableCell {
   func playThisSong() {
     guard let playable = playable else { return }
     if let playerIndex = playerIndexCb?(self) {
-      appDelegate.player.play(playerIndex: playerIndex)
+      appDelegate.player.play(playerIndex: playerIndex, autoStartPlayback: true)
     } else if playContextCb != nil,
               playable.isCached || appDelegate.storage.settings.user.isOnlineMode {
       animateActivation()
       hideSearchBarKeyboardInRootView()
       Haptics.success.vibrate(isHapticsEnabled: appDelegate.storage.settings.user.isHapticsEnabled)
-      // Insert the song into the queue and play it immediately
+      // Insert the song at the front of the queue and play it immediately
       appDelegate.player.insertContextQueue(playables: [playable])
-      appDelegate.player.playNext()
-      appDelegate.player.play()
+      // Play the song we just inserted (at index 0 of the next queue) with forced autostart
+      appDelegate.player.play(
+        playerIndex: PlayerIndex(queueType: .next, index: 0),
+        autoStartPlayback: true
+      )
     }
   }
 

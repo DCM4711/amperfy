@@ -212,7 +212,7 @@ public protocol PlayerFacade {
   func play()
   func play(context: PlayContext)
   func playShuffled(context: PlayContext)
-  func play(playerIndex: PlayerIndex)
+  func play(playerIndex: PlayerIndex, autoStartPlayback: Bool?)
   func pause()
   func togglePlayPause()
   func stop()
@@ -630,8 +630,8 @@ class PlayerFacadeImpl: PlayerFacade {
     musicPlayer.notifyPlaylistUpdated()
   }
 
-  func play(playerIndex: PlayerIndex) {
-    musicPlayer.play(playerIndex: playerIndex)
+  func play(playerIndex: PlayerIndex, autoStartPlayback: Bool? = nil) {
+    musicPlayer.play(playerIndex: playerIndex, autoStartPlayback: autoStartPlayback)
   }
 
   func pause() {

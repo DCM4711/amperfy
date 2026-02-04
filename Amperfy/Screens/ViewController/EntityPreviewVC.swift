@@ -418,7 +418,7 @@ class EntityPreviewActionBuilder {
     UIAction(title: "Play", image: .play) { action in
       guard !self.entityPlayables.isEmpty else { return }
       if let playerIndex = self.playerIndexCb?() {
-        self.appDelegate.player.play(playerIndex: playerIndex)
+        self.appDelegate.player.play(playerIndex: playerIndex, autoStartPlayback: nil)
       } else if let context = self.playContextCb?() {
         self.appDelegate.player.play(context: context)
       } else {
