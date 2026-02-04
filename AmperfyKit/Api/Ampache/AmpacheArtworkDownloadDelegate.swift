@@ -30,7 +30,6 @@ final class AmpacheArtworkDownloadDelegate: DownloadManagerDelegate {
   private let ampacheXmlServerApi: AmpacheXmlServerApi
   private let networkMonitor: NetworkMonitorFacade
   private let fileManager = CacheFileManager.shared
-  private let defaultImageData = Atomic<Data?>(wrappedValue: nil)
 
   init(ampacheXmlServerApi: AmpacheXmlServerApi, networkMonitor: NetworkMonitorFacade) {
     self.ampacheXmlServerApi = ampacheXmlServerApi
@@ -98,44 +97,15 @@ final class AmpacheArtworkDownloadDelegate: DownloadManagerDelegate {
     }
     guard let artworkRemoteInfo else { return }
 
-    do {
-      let defaultImageData = try await requestDefaultImageData()
-      if let artworkFileSize = fileManager.getFileSize(url: fileURL),
-         artworkFileSize == defaultImageData.sizeInByte,
-         let artworkData = fileManager.getFileDataIfNotToBig(url: fileURL),
-         artworkData == defaultImageData {
-        try? await storage.perform { asyncCompanion in
-          let artwork = Artwork(
-            managedObject: asyncCompanion.context
-              .object(with: downloadInfo.objectId) as! ArtworkMO
-          )
-          artwork.status = .IsDefaultImage
-          artwork.relFilePath = nil
-          asyncCompanion.saveContext()
-        }
-      } else {
-        let relFilePath = handleCustomImage(fileURL: fileURL, artworkRemoteInfo: artworkRemoteInfo)
-        try? await storage.perform { asyncCompanion in
-          let artwork = Artwork(
-            managedObject: asyncCompanion.context
-              .object(with: downloadInfo.objectId) as! ArtworkMO
-          )
-          artwork.status = .CustomImage
-          artwork.relFilePath = relFilePath
-          asyncCompanion.saveContext()
-        }
-      }
-    } catch {
-      let relFilePath = handleCustomImage(fileURL: fileURL, artworkRemoteInfo: artworkRemoteInfo)
-      try? await storage.perform { asyncCompanion in
-        let artwork = Artwork(
-          managedObject: asyncCompanion.context
-            .object(with: downloadInfo.objectId) as! ArtworkMO
-        )
-        artwork.status = .CustomImage
-        artwork.relFilePath = relFilePath
-        asyncCompanion.saveContext()
-      }
+    let relFilePath = handleCustomImage(fileURL: fileURL, artworkRemoteInfo: artworkRemoteInfo)
+    try? await storage.perform { asyncCompanion in
+      let artwork = Artwork(
+        managedObject: asyncCompanion.context
+          .object(with: downloadInfo.objectId) as! ArtworkMO
+      )
+      artwork.status = .CustomImage
+      artwork.relFilePath = relFilePath
+      asyncCompanion.saveContext()
     }
   }
 
@@ -164,16 +134,6 @@ final class AmpacheArtworkDownloadDelegate: DownloadManagerDelegate {
       )
       artwork.markErrorIfNeeded()
       asyncCompanion.saveContext()
-    }
-  }
-
-  private func requestDefaultImageData() async throws -> Data {
-    if let defaultImageData = defaultImageData.wrappedValue {
-      return defaultImageData
-    } else {
-      let response = try await ampacheXmlServerApi.requestDefaultArtwork()
-      defaultImageData.wrappedValue = response.data
-      return response.data
     }
   }
 }

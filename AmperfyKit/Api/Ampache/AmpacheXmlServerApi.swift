@@ -281,22 +281,6 @@ final class AmpacheXmlServerApi: URLCleanser, Sendable {
     }
   }
 
-  public func requestDefaultArtwork() async throws -> APIDataResponse {
-    try await request { auth in
-      guard let hostname = self.credentials.wrappedValue?.activeBackendServerUrl,
-            var url = URL(string: hostname)
-      else { throw BackendError.invalidUrl }
-      url.appendPathComponent("image.php")
-      guard var urlComp = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-        throw BackendError.invalidUrl
-      }
-      urlComp.addQueryItem(name: "object_id", value: "0")
-      urlComp.addQueryItem(name: "object_type", value: "artist")
-      urlComp.addQueryItem(name: "auth", value: auth.token)
-      return try self.createUrl(from: urlComp)
-    }
-  }
-
   public func requestCatalogs() async throws -> APIDataResponse {
     try await request { auth in
       var urlComp = try self.createAuthApiUrlComponent(auth: auth)
@@ -823,7 +807,9 @@ final class AmpacheXmlServerApi: URLCleanser, Sendable {
 
     guard var urlComp = URLComponents(url: apiUrl, resolvingAgainstBaseURL: false)
     else { throw BackendError.invalidUrl }
+    let auth = try await reauthenticate()
 
+    urlComp.addQueryItem(name: "auth", value: auth.token)
     urlComp.addQueryItem(name: "object_id", value: artworkRemoteInfo.id)
     urlComp.addQueryItem(name: "object_type", value: artworkRemoteInfo.type)
 
