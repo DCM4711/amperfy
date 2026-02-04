@@ -411,6 +411,15 @@ class PlayableTableCell: BasicTableCell {
     let isDisplayOptionButton = (playContextCb != nil) && (playerIndexCb == nil)
     let durationTrailing = isDisplayOptionButton ?
       ((traitCollection.horizontalSizeClass == .regular) ? 30 : 30.0) : 0.0
+    
+    // Calculate extra space needed for rating stars when duration is hidden
+    // Stars are positioned at optionsButton.trailingAnchor - 4, extending left
+    // Each star is 10pt with -2pt spacing: width = rating * 8 + 2
+    // We only need extra space beyond what optionsButton area (30pt) already provides
+    let songRating = playable.asSong?.rating ?? 0
+    let isRatingVisible = appDelegate.storage.settings.user.isShowRating && songRating > 0
+    let starWidth = CGFloat(songRating * 8 + 2)  // Actual star width for this rating
+    let ratingExtraSpace: CGFloat = isRatingVisible ? max(0, starWidth - 26) + 6 : 0.0  // Add padding between artist name and stars
 
     optionsButton.isHidden = !isDisplayOptionButton
     if isDisplayOptionButton {
@@ -450,6 +459,10 @@ class PlayableTableCell: BasicTableCell {
         lableTrailing += 4 + cacheIconWidth
       } else if isDurationVisible {
         lableTrailing += 8 + durationWidth
+      }
+      // Add extra space for rating stars when duration is not visible
+      if !isDurationVisible, isRatingVisible {
+        lableTrailing += ratingExtraSpace
       }
       labelTrailingCellConstraint.constant = lableTrailing
     }
