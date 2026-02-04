@@ -104,6 +104,11 @@ class BackendAudioPlayer: NSObject {
   private var timerLyricsTimeInterval: Timer?
   private var volumePlayer: Float = 1.0
   
+  // Playback watchdog - detects stuck playback
+  private var lastKnownElapsedTime: Double = 0.0
+  private var stuckPlaybackCheckCount: Int = 0
+  private let maxStuckPlaybackChecks: Int = 3  // After 3 seconds of no progress, attempt recovery
+  
   // Pending asset to play when user presses play (used when autoStartPlayback is false)
   private var pendingPlayAsset: AVURLAsset?
   
@@ -228,6 +233,10 @@ class BackendAudioPlayer: NSObject {
   private func startTimers() {
     stopTimers()
     
+    // Reset watchdog state
+    lastKnownElapsedTime = elapsedTime
+    stuckPlaybackCheckCount = 0
+    
     // Use DispatchQueue timers instead of creating Tasks every tick
     // This prevents Task accumulation when main thread is busy
     timerElapsedTimeInterval = Timer.scheduledTimer(
@@ -237,6 +246,7 @@ class BackendAudioPlayer: NSObject {
       // Timer already fires on main thread, no need to dispatch again
       guard let self else { return }
       self.checkForPreloadNextPlayerItem()
+      self.checkForStuckPlayback()
       self.responder?.didElapsedTimeChange()
     }
     timerLyricsTimeInterval = Timer.scheduledTimer(
@@ -279,6 +289,51 @@ class BackendAudioPlayer: NSObject {
       }
     }
   }
+  
+  /// Watchdog to detect and recover from stuck playback
+  /// This handles cases where the UI shows "playing" but audio isn't actually progressing
+  private func checkForStuckPlayback() {
+    // Only check if we think we should be playing
+    guard isPlaying else {
+      stuckPlaybackCheckCount = 0
+      lastKnownElapsedTime = 0
+      return
+    }
+    
+    let currentElapsed = elapsedTime
+    
+    // Check if elapsed time is advancing
+    if currentElapsed > 0 && abs(currentElapsed - lastKnownElapsedTime) < 0.1 {
+      // Elapsed time hasn't changed significantly
+      stuckPlaybackCheckCount += 1
+      os_log(.debug, "Playback watchdog: no progress detected (%d/%d)", stuckPlaybackCheckCount, maxStuckPlaybackChecks)
+      
+      if stuckPlaybackCheckCount >= maxStuckPlaybackChecks {
+        os_log(.default, "Playback watchdog: attempting recovery - elapsed time stuck at %f", currentElapsed)
+        stuckPlaybackCheckCount = 0
+        
+        // Attempt recovery by resuming playback
+        let playerState = player?.getState()
+        os_log(.debug, "Playback watchdog: player state is %s", String(describing: playerState))
+        
+        if playerState == .paused || playerState == .stopped {
+          // Player is paused/stopped but we think it should be playing - resume it
+          os_log(.default, "Playback watchdog: resuming paused/stopped player")
+          player?.resume()
+          player?.rate = Float(userDefinedPlaybackRate.asDouble)
+        } else if playerState == .bufferring {
+          // Still buffering - reset counter and wait
+          os_log(.debug, "Playback watchdog: player is buffering, waiting...")
+          stuckPlaybackCheckCount = 0
+        }
+      }
+    } else {
+      // Playback is progressing normally
+      stuckPlaybackCheckCount = 0
+    }
+    
+    lastKnownElapsedTime = currentElapsed
+  }
 
   @MainActor
   private func itemFinishedPlaying() {
@@ -317,6 +372,10 @@ class BackendAudioPlayer: NSObject {
 
   func continuePlay() {
     isPlaying = true
+    
+    // Reset watchdog state since we're actively starting/continuing playback
+    stuckPlaybackCheckCount = 0
+    lastKnownElapsedTime = elapsedTime
     
     // If there's a pending asset (from next/prev while paused), play it now
     if let pendingAsset = pendingPlayAsset {
@@ -905,6 +964,18 @@ extension BackendAudioPlayer: AudioStreaming.AudioPlayerDelegate {
       }
     }
     
+    // For streaming URLs, check if the base URLs match (ignoring query parameters that might differ)
+    if !isMatch, !currentPreparedUrl.hasPrefix("file://"), !url.hasPrefix("file://") {
+      if let preparedURL = URL(string: currentPreparedUrl),
+         let receivedURL = URL(string: url) {
+        // Compare host and path, ignoring query parameters
+        if preparedURL.host == receivedURL.host && preparedURL.path == receivedURL.path {
+          isMatch = true
+          os_log(.debug, "Streaming URL match by host+path: %s%s", preparedURL.host ?? "", preparedURL.path)
+        }
+      }
+    }
+    
     os_log(
       .debug,
       "didStartPlaying called - url: %s, currentPreparedUrl: %s, match: %s",
@@ -936,16 +1007,23 @@ extension BackendAudioPlayer: AudioStreaming.AudioPlayerDelegate {
     } else {
       os_log(.debug, "didStartPlaying: URL mismatch - currentPlayUrl NOT updated!")
       
-      // Fallback: if we have a pending seek and both are file URLs, try to process anyway
+      // Fallback: Process the playback anyway if we have a prepared URL pending
       // This handles cases where the URL format differs between what we set and what we receive
-      if currentPreparedUrl.hasPrefix("file://"), url.hasPrefix("file://") {
-        os_log(.debug, "Fallback: Processing file URL despite mismatch")
+      if !currentPreparedUrl.isEmpty {
+        os_log(.debug, "Fallback: Processing URL despite mismatch (prepared URL was pending)")
         currentPreparedUrl = ""
         currentPlayUrl = url
+        
+        if let sampleRate = player?.mainMixerNode.outputFormat(forBus: 0).sampleRate {
+          audioAnalyzer.playing(sampleRate: Float(sampleRate))
+        }
         
         if shouldPlaybackStart {
           continuePlay()
           audioAnalyzer.play()
+        } else {
+          pause()
+          audioAnalyzer.stop()
         }
         
         if let seekTimeWhenStarted {
