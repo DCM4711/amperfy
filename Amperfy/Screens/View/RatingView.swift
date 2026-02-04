@@ -58,6 +58,14 @@ class RatingView: UIView {
     }
   }
 
+  /// Whether the rating view is enabled for interaction
+  /// When disabled, opacity is reduced and touches are ignored
+  var isRatingEnabled: Bool = true {
+    didSet {
+      updateEnabledState()
+    }
+  }
+
   // MARK: - Initialization
 
   override init(frame: CGRect) {
@@ -120,6 +128,8 @@ class RatingView: UIView {
 
   @objc
   private func starTapped(_ sender: UIButton) {
+    guard isRatingEnabled else { return }
+
     let newRating = sender.tag
 
     // If tapping the same star that represents current rating, clear it
@@ -138,7 +148,7 @@ class RatingView: UIView {
 
   @objc
   private func starLongPressed(_ sender: UILongPressGestureRecognizer) {
-    guard sender.state == .began else { return }
+    guard isRatingEnabled, sender.state == .began else { return }
 
     setRating(0, animated: true)
     delegate?.ratingView(self, didChangeRating: rating)
@@ -170,6 +180,19 @@ class RatingView: UIView {
       let starNumber = index + 1
       let isFilled = starNumber <= rating
       button.setImage(isFilled ? .starFill : .starEmpty, for: .normal)
+
+      // Apply reduced opacity when disabled
+      if isRatingEnabled {
+        button.alpha = 1.0
+      } else {
+        // 30% opacity for filled stars, 5% for empty stars when disabled
+        button.alpha = isFilled ? 0.3 : 0.05
+      }
     }
+  }
+
+  private func updateEnabledState() {
+    // Re-apply star display with appropriate opacity
+    updateStarDisplay()
   }
 }
