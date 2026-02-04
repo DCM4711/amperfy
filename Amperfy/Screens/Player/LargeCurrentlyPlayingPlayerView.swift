@@ -246,9 +246,22 @@ class LargeCurrentlyPlayingPlayerView: UIView {
     setupRatingView()
     // Info button removed - now accessible from player controls bar
     addSwipeGesturesToArtwork()
+    
+    // Observe network status changes to update rating enabled state
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(handleNetworkStatusChanged),
+      name: .networkStatusChanged,
+      object: nil
+    )
 
     displayElement = getDisplayElementBasedOnConfig()
     refresh()
+  }
+  
+  @objc
+  private func handleNetworkStatusChanged() {
+    refreshRating()
   }
   
   private func setupInfoButton() {
@@ -654,6 +667,9 @@ class LargeCurrentlyPlayingPlayerView: UIView {
       // Hide heart for non-songs (radios, podcasts, etc.)
       ratingView?.setHeartVisible(playable?.isSong == true)
     }
+    
+    // Disable rating interaction when offline (display only with reduced opacity)
+    ratingView?.isRatingEnabled = appDelegate.networkMonitor.isConnectedToNetwork
   }
 
   func refreshArtwork() {

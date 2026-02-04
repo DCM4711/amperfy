@@ -73,6 +73,14 @@ class RatingView: UIView {
     }
   }
 
+  /// Whether the rating view is enabled for interaction
+  /// When disabled, opacity is reduced to 50% and touches are ignored
+  var isRatingEnabled: Bool = true {
+    didSet {
+      updateEnabledState()
+    }
+  }
+
   private(set) var rating: Int = 0 {
     didSet {
       updateStarDisplay()
@@ -185,7 +193,7 @@ class RatingView: UIView {
 
   @objc
   private func starTapped(_ sender: UITapGestureRecognizer) {
-    guard let starView = sender.view else { return }
+    guard isRatingEnabled, let starView = sender.view else { return }
     let newRating = starView.tag
 
     // If tapping the same star that represents current rating, clear it
@@ -204,7 +212,7 @@ class RatingView: UIView {
 
   @objc
   private func starLongPressed(_ sender: UILongPressGestureRecognizer) {
-    guard sender.state == .began else { return }
+    guard isRatingEnabled, sender.state == .began else { return }
 
     setRating(0, animated: true)
     delegate?.ratingView(self, didChangeRating: rating)
@@ -213,12 +221,14 @@ class RatingView: UIView {
     let generator = UIImpactFeedbackGenerator(style: .medium)
     generator.impactOccurred()
   }
-  
+
   @objc
   private func heartTapped(_ sender: UITapGestureRecognizer) {
+    guard isRatingEnabled else { return }
+
     setFavorite(!isFavorite, animated: true)
     delegate?.ratingView(self, didToggleFavorite: isFavorite)
-    
+
     // Haptic feedback
     let generator = UIImpactFeedbackGenerator(style: .light)
     generator.impactOccurred()
@@ -265,7 +275,15 @@ class RatingView: UIView {
       let isSelected = starNumber <= rating
       
       // Create pre-colored images to bypass tintColor override
-      let color = isSelected ? Self.selectedStarColor : Self.unselectedStarColor
+      let color: UIColor
+      if isRatingEnabled {
+        color = isSelected ? Self.selectedStarColor : Self.unselectedStarColor
+      } else {
+        // Reduced opacity when disabled: 30% for selected, 5% for unselected
+        color = isSelected
+          ? Self.selectedStarColor.withAlphaComponent(0.3)
+          : Self.unselectedStarColor.withAlphaComponent(0.05)
+      }
       starView.image = baseImage.withTintColor(color, renderingMode: .alwaysOriginal)
     }
   }
@@ -277,7 +295,21 @@ class RatingView: UIView {
     let heartImage = UIImage(systemName: "heart.fill")?.withConfiguration(config)
     
     // Selected heart is red, unselected has same opacity as unselected stars
-    let color: UIColor = isFavorite ? .systemRed : Self.unselectedStarColor
+    let color: UIColor
+    if isRatingEnabled {
+      color = isFavorite ? .systemRed : Self.unselectedStarColor
+    } else {
+      // Reduced opacity when disabled: 30% for selected, 5% for unselected
+      color = isFavorite
+        ? UIColor.systemRed.withAlphaComponent(0.3)
+        : Self.unselectedStarColor.withAlphaComponent(0.05)
+    }
     heartImageView.image = heartImage?.withTintColor(color, renderingMode: .alwaysOriginal)
+  }
+
+  private func updateEnabledState() {
+    // Update star and heart displays with appropriate opacity
+    updateStarDisplay()
+    updateHeartDisplay()
   }
 }
