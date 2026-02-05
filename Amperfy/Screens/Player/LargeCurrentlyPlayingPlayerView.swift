@@ -191,11 +191,10 @@ class LargeCurrentlyPlayingPlayerView: UIView {
     setupRatingView()
     addSwipeGesturesToArtwork()
 
-    // Observe network status changes to update rating enabled state
-    NotificationCenter.default.addObserver(
+    appDelegate.notificationHandler.register(
       self,
-      selector: #selector(handleNetworkStatusChanged),
-      name: .networkStatusChanged,
+      selector: #selector(refreshOfflineMode),
+      name: .offlineModeChanged,
       object: nil
     )
 
@@ -204,7 +203,7 @@ class LargeCurrentlyPlayingPlayerView: UIView {
   }
 
   @objc
-  private func handleNetworkStatusChanged() {
+  private func refreshOfflineMode() {
     refreshRating()
   }
 
@@ -432,7 +431,7 @@ class LargeCurrentlyPlayingPlayerView: UIView {
     ratingView?.setRating(song.rating, animated: false)
 
     // Disable rating interaction when offline (display only with reduced opacity)
-    ratingView?.isRatingEnabled = appDelegate.networkMonitor.isConnectedToNetwork
+    ratingView?.isRatingEnabled = !appDelegate.storage.settings.user.isOfflineMode
   }
 
   func refreshArtwork() {
