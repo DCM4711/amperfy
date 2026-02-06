@@ -37,14 +37,42 @@ class SongMetadataVC: UIViewController {
     // Dynamic background based on light/dark mode
     view.backgroundColor = UIColor { traitCollection in
       if traitCollection.userInterfaceStyle == .dark {
-        return UIColor.black.withAlphaComponent(0.45)
+        return UIColor.black.withAlphaComponent(0.65)
       } else {
         return UIColor.white.withAlphaComponent(0.45)
       }
     }
     
     setupScrollView()
+    setupBorderOverlay()
     buildMetadataContent()
+  }
+
+  private func setupBorderOverlay() {
+    let borderView = UIView()
+    borderView.translatesAutoresizingMaskIntoConstraints = false
+    borderView.backgroundColor = .clear
+    borderView.isUserInteractionEnabled = false
+    borderView.layer.cornerRadius = 35
+    borderView.layer.borderWidth = 1.0
+    borderView.layer.borderColor = UIColor.separator.cgColor
+    view.addSubview(borderView)
+
+    NSLayoutConstraint.activate([
+      borderView.topAnchor.constraint(equalTo: view.topAnchor),
+      borderView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      borderView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+      borderView.bottomAnchor.constraint(
+        equalTo: view.safeAreaLayoutGuide.bottomAnchor
+      ),
+    ])
+  }
+
+  override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+    super.traitCollectionDidChange(previousTraitCollection)
+    for subview in view.subviews where subview.layer.borderWidth > 0 {
+      subview.layer.borderColor = UIColor.separator.cgColor
+    }
   }
   
   private func setupScrollView() {
