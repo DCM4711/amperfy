@@ -29,13 +29,15 @@ I do not implement pull requests - please support the Amperfy project if you wan
   - The play/pause status will not be changed by clicking '<<' or '>>'. If a song is paused and you click '>>' the next song will also be paused. When a song is currently playing and you click '>>' the next song will also be played automatically.
   - Removed the 'Manual Playback' setting
 - When a song is starting, song data (eg. playcount) will be automatically fetched from server
-  - Local playcounts are disabled as they increased as soon a song started.
+  - Local playcounts are disabled as they increased as soon a song started
   - Playcounts are only maintained by the server, no matter if a song is streamed or already downloaded
   - Removed the "Scrobble streamed Songs" setting (always enabled)
 - Always remember the playback position of only the currently played song
   - When restarting the app the position of the previously played song will be remembered
   - Removed setting 'Song Playback Resume' as this will remember the playback position of all songs and you might end up with a playlist/album where songs just start anywhere in the middle.
 - Add 'Remove from Playlist' to song context menu in playlists
+- Clicking on a song in any song-list view will insert the song into the current queue and play it right away. It used to clear the existing queue and insert the currently viewed song-list to the queue. Use 'Play' or 'Shuffle' to replace the current queue with the currently shown song-list
+- Show trashcan button in queue view to clear the current queue
 
 ### Changes to the Settings menu:
 - Added 'Show Star Rating' setting in 'Display and Interaction'
