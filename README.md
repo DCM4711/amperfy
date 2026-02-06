@@ -53,22 +53,22 @@ I do not implement pull requests - please support the Amperfy project if you wan
 ## Comparision:
 
 #### Grid view (Amperfy / Musify):
-<img src="Assets/amperfy01.jpg" width="400" alt="GridView Amperfy"> <img src="Assets/musify01.jpg" width="400" alt="GridView Musify">
+<img src="Assets/amperfy01.jpeg" width="400" alt="GridView Amperfy"> <img src="Assets/musify01.jpeg" width="400" alt="GridView Musify">
 
 #### Star ratings in song lists (Amperfy / Musify):
-<img src="Assets/amperfy02.jpg" width="400" alt="Song-List Amperfy"> <img src="Assets/musify02.jpg" width="400" alt="Song-List Musify">
+<img src="Assets/amperfy02.jpeg" width="400" alt="Song-List Amperfy"> <img src="Assets/musify02.jpeg" width="400" alt="Song-List Musify">
 
 #### Currently playing view (Amperfy / Musify):
-<img src="Assets/amperfy03.jpg" width="400" alt="Currently Playing Amperfy"> <img src="Assets/musify03.jpg" width="400" alt="Currently Playing Musify">
+<img src="Assets/amperfy03.jpeg" width="400" alt="Currently Playing Amperfy"> <img src="Assets/musify03.jpeg" width="400" alt="Currently Playing Musify">
 
 #### Lyrics view (Amperfy / Musify):
-<img src="Assets/amperfy04.jpg" width="400" alt="Lyrics View Amperfy"> <img src="Assets/musify04.jpg" width="400" alt="Lyrics View Musify">
+<img src="Assets/amperfy04.jpeg" width="400" alt="Lyrics View Amperfy"> <img src="Assets/musify04.jpeg" width="400" alt="Lyrics View Musify">
 
 #### Context Menu (Amperfy / Amperfy):
-<img src="Assets/amperfy05a.jpg" width="400" alt="Context Menu Amperfy"> <img src="Assets/amperfy05b.jpg" width="400" alt="Context Menu Amperfy">
+<img src="Assets/amperfy05a.jpeg" width="400" alt="Context Menu Amperfy"> <img src="Assets/amperfy05b.jpeg" width="400" alt="Context Menu Amperfy">
 
 #### Context Menu & Song Info view (Musify / Musify):
-<img src="Assets/musify05.jpg" width="400" alt="Context Menu Musify"> <img src="Assets/musify06.jpg" width="400" alt="Song Info Musify">
+<img src="Assets/musify05.jpeg" width="400" alt="Context Menu Musify"> <img src="Assets/musify06.jpeg" width="400" alt="Song Info Musify">
 
 * * *
 
