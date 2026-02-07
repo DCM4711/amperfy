@@ -148,15 +148,14 @@ class PlayerControlView: UIView {
   }
   
   private func setupInfoButton(themeColor: UIColor) {
-    infoButton = UIButton(type: .system)
+    var buttonConfig = UIButton.Configuration.plain()
+    let symbolConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
+    buttonConfig.image = UIImage(systemName: "info.circle", withConfiguration: symbolConfig)
+    buttonConfig.baseForegroundColor = themeColor
+    buttonConfig.contentInsets = NSDirectionalEdgeInsets(top: 2, leading: 2, bottom: 2, trailing: 2)
+
+    infoButton = UIButton(configuration: buttonConfig)
     infoButton.translatesAutoresizingMaskIntoConstraints = false
-    
-    let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
-    let infoImage = UIImage(systemName: "info.circle", withConfiguration: config)
-    infoButton.setImage(infoImage, for: .normal)
-    infoButton.tintColor = themeColor
-    infoButton.contentEdgeInsets = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2)
-    
     infoButton.addTarget(self, action: #selector(infoButtonPressed), for: .touchUpInside)
     
     // Insert info button at the same position as volume button in the stack view
