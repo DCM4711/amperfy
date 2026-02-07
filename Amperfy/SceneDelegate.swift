@@ -77,6 +77,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     static let mainWindowSize = CGSizeMake(1168, 688) // 2560 x 1600
   #endif
 
+  static let mainWindowFrameXKey = "mainWindowFrameX"
+  static let mainWindowFrameYKey = "mainWindowFrameY"
+  static let mainWindowFrameWidthKey = "mainWindowFrameWidth"
+  static let mainWindowFrameHeightKey = "mainWindowFrameHeight"
+
   public lazy var log = {
     AmperKit.shared.log
   }()
@@ -122,6 +127,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     replaceMainRootViewController(vc: initialViewController!)
 
     window?.makeKeyAndVisible()
+
+    restoreMainWindowFrame(windowScene: windowScene)
 
     appDelegate.setAppAppearanceMode(style: appDelegate.storage.settings.user.appearanceMode)
     AmperfyAppShortcuts.updateAppShortcutParameters()
@@ -172,6 +179,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     // Called when the scene will move from an active state to an inactive state.
     // This may occur due to temporary interruptions (ex. an incoming phone call).
     os_log("sceneWillResignActive", log: self.log, type: .info)
+    saveMainWindowFrame(scene: scene)
     guard appDelegate.isNormalInteraction else {
       return
     }
@@ -192,6 +200,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     // Save changes in the application's managed object context when the application transitions to the background.
     os_log("sceneDidEnterBackground", log: self.log, type: .info)
+    saveMainWindowFrame(scene: scene)
     AmperKit.shared.threadPerformanceMonitor.isInForeground = false
     guard appDelegate.isNormalInteraction else {
       return
@@ -258,5 +267,35 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
   func scene(_ scene: UIScene, didUpdate userActivity: NSUserActivity) {
     os_log("didUpdate userActivity: %s", log: self.log, type: .info, userActivity.activityType)
+  }
+
+  // MARK: - Window Frame Persistence
+
+  private func saveMainWindowFrame(scene: UIScene) {
+    #if targetEnvironment(macCatalyst)
+      guard let windowScene = scene as? UIWindowScene else { return }
+      let frame = windowScene.effectiveGeometry.systemFrame
+      guard frame.width > 0, frame.height > 0 else { return }
+      let defaults = UserDefaults.standard
+      defaults.set(Double(frame.origin.x), forKey: Self.mainWindowFrameXKey)
+      defaults.set(Double(frame.origin.y), forKey: Self.mainWindowFrameYKey)
+      defaults.set(Double(frame.width), forKey: Self.mainWindowFrameWidthKey)
+      defaults.set(Double(frame.height), forKey: Self.mainWindowFrameHeightKey)
+      os_log("Saved main window frame: %s", log: self.log, type: .info, frame.debugDescription)
+    #endif
+  }
+
+  private func restoreMainWindowFrame(windowScene: UIWindowScene) {
+    #if targetEnvironment(macCatalyst)
+      let defaults = UserDefaults.standard
+      let width = defaults.double(forKey: Self.mainWindowFrameWidthKey)
+      let height = defaults.double(forKey: Self.mainWindowFrameHeightKey)
+      guard width > 0, height > 0 else { return }
+      let x = defaults.double(forKey: Self.mainWindowFrameXKey)
+      let y = defaults.double(forKey: Self.mainWindowFrameYKey)
+      let frame = CGRect(x: x, y: y, width: width, height: height)
+      windowScene.requestGeometryUpdate(.Mac(systemFrame: frame))
+      os_log("Restored main window frame: %s", log: self.log, type: .info, frame.debugDescription)
+    #endif
   }
 }

@@ -50,6 +50,27 @@ class MiniPlayerSceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     window?.rootViewController = PopupPlayerVC()
     window?.makeKeyAndVisible()
+
+    applyMainWindowFrame(windowScene: windowScene)
+  }
+
+  private func applyMainWindowFrame(windowScene: UIWindowScene) {
+    #if targetEnvironment(macCatalyst)
+      let defaults = UserDefaults.standard
+      let width = defaults.double(forKey: SceneDelegate.mainWindowFrameWidthKey)
+      let height = defaults.double(forKey: SceneDelegate.mainWindowFrameHeightKey)
+      guard width > 0, height > 0 else { return }
+      let x = defaults.double(forKey: SceneDelegate.mainWindowFrameXKey)
+      let y = defaults.double(forKey: SceneDelegate.mainWindowFrameYKey)
+      let frame = CGRect(x: x, y: y, width: width, height: height)
+      windowScene.requestGeometryUpdate(.Mac(systemFrame: frame))
+      os_log(
+        "MiniPlayer: applied main window frame: %s",
+        log: self.log,
+        type: .info,
+        frame.debugDescription
+      )
+    #endif
   }
 
   /** Called when the user activates your application by selecting a shortcut on the Home Screen,
