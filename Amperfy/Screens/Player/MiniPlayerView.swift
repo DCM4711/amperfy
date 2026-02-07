@@ -298,9 +298,11 @@ class MiniPlayerView: UIView {
   @IBAction
   func lyricsPressed() {
     appDelegate.storage.settings.user.isPlayerLyricsDisplayed.toggle()
-    if appDelegate.storage.settings.user.isPlayerLyricsDisplayed {
-      appDelegate.storage.settings.user.playerDisplayStyle = .large
-    }
+    #if !targetEnvironment(macCatalyst)
+      if appDelegate.storage.settings.user.isPlayerLyricsDisplayed {
+        appDelegate.storage.settings.user.playerDisplayStyle = .large
+      }
+    #endif
     playerHandler?.refreshDisplayLyrisButton(displayLyricsButton: lyricsButton)
     playerHandler?.refreshDisplayPlaylistButton(displayPlaylistButton: playlistButton)
 
@@ -510,6 +512,12 @@ class MiniPlayerView: UIView {
     self.playlistButton.translatesAutoresizingMaskIntoConstraints = false
     self.airplayButton.translatesAutoresizingMaskIntoConstraints = false
     self.volumeButton.translatesAutoresizingMaskIntoConstraints = false
+
+    #if targetEnvironment(macCatalyst)
+      // On macOS the queue is always visible in the right panel,
+      // so the playlist toggle button is not needed.
+      playlistButton.isHidden = true
+    #endif
 
     let stack = UIStackView(arrangedSubviews: [
       lyricsButton,

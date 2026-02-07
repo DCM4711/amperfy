@@ -41,6 +41,13 @@ class LyricsVC: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
 
+    // 95% black in dark mode, 95% white in light mode
+    view.backgroundColor = UIColor { traits in
+      traits.userInterfaceStyle == .dark
+        ? UIColor(white: 0.10, alpha: 1.0)
+        : UIColor(white: 0.95, alpha: 1.0)
+    }
+
     let lyricsView = LyricsView()
     lyricsView.translatesAutoresizingMaskIntoConstraints = false
 
