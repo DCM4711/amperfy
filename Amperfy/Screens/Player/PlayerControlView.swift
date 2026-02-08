@@ -149,7 +149,7 @@ class PlayerControlView: UIView {
   
   private func setupInfoButton(themeColor: UIColor) {
     var buttonConfig = UIButton.Configuration.plain()
-    let symbolConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
+    let symbolConfig = UIImage.SymbolConfiguration(pointSize: 17, weight: .regular)
     buttonConfig.image = UIImage(systemName: "info.circle", withConfiguration: symbolConfig)
     buttonConfig.baseForegroundColor = themeColor
     buttonConfig.contentInsets = NSDirectionalEdgeInsets(top: 2, leading: 2, bottom: 2, trailing: 2)
