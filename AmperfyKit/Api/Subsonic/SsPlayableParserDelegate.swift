@@ -92,7 +92,8 @@ class SsPlayableParserDelegate: SsXmlLibWithArtworkParser {
       if let comment = attributeDict["comment"], !comment.isEmpty {
         playableBuffer?.comment = comment
       }
-      if let composer = attributeDict["composer"], !composer.isEmpty {
+      if let composer = attributeDict["displayComposer"] ?? attributeDict["composer"],
+         !composer.isEmpty {
         playableBuffer?.composer = composer
       }
       playableBuffer?.rating = Int(attributeDict["userRating"] ?? "0") ?? 0
