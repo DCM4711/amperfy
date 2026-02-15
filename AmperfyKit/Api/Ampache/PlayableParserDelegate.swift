@@ -89,6 +89,16 @@ class PlayableParserDelegate: AmpacheXmlLibParser {
       playableBuffer?.contentType = buffer
     case "disk":
       playableBuffer?.disk = buffer
+    case "filename":
+      playableBuffer?.path = buffer
+    case "composer":
+      if !buffer.isEmpty {
+        playableBuffer?.composer = buffer
+      }
+    case "comment":
+      if !buffer.isEmpty {
+        playableBuffer?.comment = buffer
+      }
     case "replaygain_album_gain":
       playableBuffer?.replayGainAlbumGain = Float(buffer) ?? 0.0
     case "replaygain_album_peak":

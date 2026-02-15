@@ -229,6 +229,20 @@ public class AbstractPlayable: AbstractLibraryEntity, Downloadable {
     }
   }
 
+  public var comment: String? {
+    get { playableManagedObject.comment }
+    set {
+      if playableManagedObject.comment != newValue { playableManagedObject.comment = newValue }
+    }
+  }
+
+  public var composer: String? {
+    get { playableManagedObject.composer }
+    set {
+      if playableManagedObject.composer != newValue { playableManagedObject.composer = newValue }
+    }
+  }
+
   public var contentType: String? {
     get { playableManagedObject.contentType }
     set {
@@ -266,6 +280,13 @@ public class AbstractPlayable: AbstractLibraryEntity, Downloadable {
     get { playableManagedObject.disk }
     set {
       if playableManagedObject.disk != newValue { playableManagedObject.disk = newValue }
+    }
+  }
+
+  public var path: String? {
+    get { playableManagedObject.path }
+    set {
+      if playableManagedObject.path != newValue { playableManagedObject.path = newValue }
     }
   }
 

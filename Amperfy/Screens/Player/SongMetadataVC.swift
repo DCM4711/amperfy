@@ -104,111 +104,77 @@ class SongMetadataVC: UIViewController {
     // General Section
     var generalRows: [(String, String)] = []
     generalRows.append(("Title", playable.title))
-    
+
     if let song = playable.asSong {
-      if let artist = song.artist {
-        generalRows.append(("Artist", artist.name))
+      generalRows.append(("Artist", song.artist?.name ?? ""))
+      generalRows.append(("Album", song.album?.name ?? ""))
+      if let album = song.album, let albumArtist = album.artist,
+         albumArtist.name != song.artist?.name {
+        generalRows.append(("Album Artist", albumArtist.name))
       }
-      
-      // Album Artist (from album's artist, if different from song artist)
-      if let album = song.album {
-        generalRows.append(("Album", album.name))
-        if let albumArtist = album.artist, albumArtist.name != song.artist?.name {
-          generalRows.append(("Album Artist", albumArtist.name))
-        }
-      }
-      
-      if let genre = song.genre {
-        generalRows.append(("Genre", genre.name))
-      }
+      generalRows.append(("Genre", song.genre?.name ?? ""))
     }
-    
-    if playable.track > 0 {
-      generalRows.append(("Track", "\(playable.track)"))
-    }
-    
-    if let disk = playable.disk, !disk.isEmpty {
-      generalRows.append(("Disc", disk))
-    }
-    
-    if playable.year > 0 {
-      generalRows.append(("Year", "\(playable.year)"))
-    }
-    
-    if playable.duration > 0 {
-      generalRows.append(("Duration", playable.duration.asDurationString))
-    }
-    
+
+    generalRows.append(("Composer", playable.composer ?? ""))
+    generalRows.append(("Track", playable.track > 0 ? "\(playable.track)" : ""))
+    generalRows.append(("Disc", playable.disk ?? ""))
+    generalRows.append(("Year", playable.year > 0 ? "\(playable.year)" : ""))
+    generalRows.append(("Duration", playable.duration > 0 ? playable.duration.asDurationString : ""))
+
     if let song = playable.asSong {
       generalRows.append(("Rating", song.rating > 0 ? "\(song.rating) / 5" : "Not rated"))
       generalRows.append(("Favorite", song.isFavorite ? "Yes" : "No"))
-      
-      // Playcount
       generalRows.append(("Play Count", "\(song.playCount)"))
     }
-    
+
+    generalRows.append(("Comment", playable.comment ?? ""))
+
     addSection(title: "Song Info", rows: generalRows)
-    
+
     // Technical Section
     var technicalRows: [(String, String)] = []
-    
-    if playable.bitrate > 0 {
-      let bitrateKbps = (playable.bitrate + 500) / 1000
-      technicalRows.append(("Bitrate", "\(bitrateKbps) kbps"))
-    }
-    
-    if let contentType = playable.contentType {
-      technicalRows.append(("Format", contentType))
-    }
-    
-    if playable.size > 0 {
-      let sizeInMB = Double(playable.size) / (1024 * 1024)
-      technicalRows.append(("File Size", String(format: "%.2f MB", sizeInMB)))
-    }
-    
+    let bitrateKbps = playable.bitrate > 0 ? "\((playable.bitrate + 500) / 1000) kbps" : ""
+    technicalRows.append(("Bitrate", bitrateKbps))
+    technicalRows.append(("Format", playable.contentType ?? ""))
+    let fileSizeStr = playable.size > 0
+      ? String(format: "%.2f MB", Double(playable.size) / (1024 * 1024))
+      : ""
+    technicalRows.append(("File Size", fileSizeStr))
     technicalRows.append(("ID", playable.id))
-    
-    if !technicalRows.isEmpty {
-      addSection(title: "Technical", rows: technicalRows)
-    }
-    
+
+    addSection(title: "Technical", rows: technicalRows)
+
+    // File Location Section (stacked layout for long paths)
+    let nsPath = (playable.path ?? "") as NSString
+    let directory = nsPath.deletingLastPathComponent
+    let filename = nsPath.lastPathComponent
+    var locationRows: [(String, String)] = []
+    locationRows.append(("Directory", directory))
+    locationRows.append(("Filename", filename == "." ? "" : filename))
+    addStackedSection(title: "File Location", rows: locationRows)
+
     // ReplayGain Section
     var replayGainRows: [(String, String)] = []
-    
-    if playable.replayGainTrackGain != 0 {
-      let sign = playable.replayGainTrackGain >= 0 ? "+" : ""
-      replayGainRows.append(("Track Gain", String(format: "%@%.2f dB", sign, playable.replayGainTrackGain)))
-    }
-    
-    if playable.replayGainTrackPeak != 0 {
-      replayGainRows.append(("Track Peak", String(format: "%.6f", playable.replayGainTrackPeak)))
-    }
-    
-    if playable.replayGainAlbumGain != 0 {
-      let sign = playable.replayGainAlbumGain >= 0 ? "+" : ""
-      replayGainRows.append(("Album Gain", String(format: "%@%.2f dB", sign, playable.replayGainAlbumGain)))
-    }
-    
-    if playable.replayGainAlbumPeak != 0 {
-      replayGainRows.append(("Album Peak", String(format: "%.6f", playable.replayGainAlbumPeak)))
-    }
-    
-    if !replayGainRows.isEmpty {
-      addSection(title: "ReplayGain", rows: replayGainRows)
-    }
-    
-    // Download Section - always shown
+    let trackGainSign = playable.replayGainTrackGain >= 0 ? "+" : ""
+    replayGainRows.append(("Track Gain", playable.replayGainTrackGain != 0
+      ? String(format: "%@%.2f dB", trackGainSign, playable.replayGainTrackGain) : ""))
+    replayGainRows.append(("Track Peak", playable.replayGainTrackPeak != 0
+      ? String(format: "%.6f", playable.replayGainTrackPeak) : ""))
+    let albumGainSign = playable.replayGainAlbumGain >= 0 ? "+" : ""
+    replayGainRows.append(("Album Gain", playable.replayGainAlbumGain != 0
+      ? String(format: "%@%.2f dB", albumGainSign, playable.replayGainAlbumGain) : ""))
+    replayGainRows.append(("Album Peak", playable.replayGainAlbumPeak != 0
+      ? String(format: "%.6f", playable.replayGainAlbumPeak) : ""))
+
+    addSection(title: "ReplayGain", rows: replayGainRows)
+
+    // Download Section
     var downloadRows: [(String, String)] = []
-    
-    // Check if the song is downloaded (cached on device)
     isUserDownloaded = playable.isCached
-    
     downloadRows.append(("Downloaded", isUserDownloaded ? "Yes" : "No"))
-    
-    if isUserDownloaded, let transcodedType = playable.contentTypeTranscoded {
-      downloadRows.append(("Downloaded Format", transcodedType))
-    }
-    
+    downloadRows.append(("Downloaded Format", isUserDownloaded
+      ? (playable.contentTypeTranscoded ?? "") : ""))
+
     addDownloadSection(rows: downloadRows, isDownloaded: isUserDownloaded)
   }
   
@@ -388,7 +354,110 @@ class SongMetadataVC: UIViewController {
     
     stackView.addArrangedSubview(sectionContainer)
   }
-  
+
+  private func addStackedSection(title: String, rows: [(String, String)]) {
+    // Section header
+    let headerLabel = UILabel()
+    headerLabel.text = title.uppercased()
+    headerLabel.font = .systemFont(ofSize: 12, weight: .medium)
+    headerLabel.textColor = .secondaryLabel
+    headerLabel.translatesAutoresizingMaskIntoConstraints = false
+
+    let headerContainer = UIView()
+    headerContainer.translatesAutoresizingMaskIntoConstraints = false
+    headerContainer.addSubview(headerLabel)
+
+    NSLayoutConstraint.activate([
+      headerLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 12),
+      headerLabel.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -12),
+      headerLabel.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: 8),
+      headerLabel.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -4),
+    ])
+
+    stackView.addArrangedSubview(headerContainer)
+
+    // Section content container
+    let sectionContainer = UIView()
+    sectionContainer.backgroundColor = .clear
+    sectionContainer.translatesAutoresizingMaskIntoConstraints = false
+
+    let rowsStackView = UIStackView()
+    rowsStackView.axis = .vertical
+    rowsStackView.spacing = 0
+    rowsStackView.translatesAutoresizingMaskIntoConstraints = false
+    sectionContainer.addSubview(rowsStackView)
+
+    NSLayoutConstraint.activate([
+      rowsStackView.topAnchor.constraint(equalTo: sectionContainer.topAnchor),
+      rowsStackView.leadingAnchor.constraint(equalTo: sectionContainer.leadingAnchor),
+      rowsStackView.trailingAnchor.constraint(equalTo: sectionContainer.trailingAnchor),
+      rowsStackView.bottomAnchor.constraint(equalTo: sectionContainer.bottomAnchor),
+    ])
+
+    for (index, row) in rows.enumerated() {
+      let rowView = createStackedRowView(
+        label: row.0,
+        value: row.1,
+        isLast: index == rows.count - 1
+      )
+      rowsStackView.addArrangedSubview(rowView)
+    }
+
+    stackView.addArrangedSubview(sectionContainer)
+  }
+
+  private func createStackedRowView(label: String, value: String, isLast: Bool) -> UIView {
+    let container = UIView()
+    container.translatesAutoresizingMaskIntoConstraints = false
+
+    let labelLabel = UILabel()
+    labelLabel.text = label
+    labelLabel.font = .systemFont(ofSize: 13, weight: .medium)
+    labelLabel.textColor = .label
+    labelLabel.translatesAutoresizingMaskIntoConstraints = false
+
+    let valueLabel = UILabel()
+    valueLabel.text = value
+    valueLabel.font = .systemFont(ofSize: 14)
+    valueLabel.textColor = .secondaryLabel
+    valueLabel.numberOfLines = 0
+    valueLabel.lineBreakMode = .byCharWrapping
+    valueLabel.translatesAutoresizingMaskIntoConstraints = false
+
+    container.addSubview(labelLabel)
+    container.addSubview(valueLabel)
+
+    let separator = UIView()
+    separator.backgroundColor = .separator
+    separator.translatesAutoresizingMaskIntoConstraints = false
+    separator.isHidden = isLast
+    container.addSubview(separator)
+
+    NSLayoutConstraint.activate([
+      labelLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: 10),
+      labelLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+      labelLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+
+      valueLabel.topAnchor.constraint(equalTo: labelLabel.bottomAnchor, constant: 4),
+      valueLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+      valueLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+      valueLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10),
+
+      separator.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+      separator.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+      separator.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+      separator.heightAnchor.constraint(equalToConstant: 0.5),
+    ])
+
+    // Add tap gesture to copy value
+    let tap = UITapGestureRecognizer(target: self, action: #selector(rowTapped(_:)))
+    container.addGestureRecognizer(tap)
+    container.isUserInteractionEnabled = true
+    container.accessibilityLabel = value
+
+    return container
+  }
+
   private func createRowView(label: String, value: String, isLast: Bool, showCopyIcon: Bool = false) -> UIView {
     let container = UIView()
     container.translatesAutoresizingMaskIntoConstraints = false

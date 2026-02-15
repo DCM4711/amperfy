@@ -86,6 +86,15 @@ class SsPlayableParserDelegate: SsXmlLibWithArtworkParser {
       if let disk = attributeDict["discNumber"] {
         playableBuffer?.disk = disk
       }
+      if let path = attributeDict["path"] {
+        playableBuffer?.path = path
+      }
+      if let comment = attributeDict["comment"], !comment.isEmpty {
+        playableBuffer?.comment = comment
+      }
+      if let composer = attributeDict["composer"], !composer.isEmpty {
+        playableBuffer?.composer = composer
+      }
       playableBuffer?.rating = Int(attributeDict["userRating"] ?? "0") ?? 0
       if let attributePlayCount = attributeDict["playCount"], let playCount = Int(attributePlayCount) {
         playableBuffer?.playCount = playCount

@@ -31,11 +31,17 @@ extension AbstractPlayableMO {
   @NSManaged
   public var bitrate: Int32
   @NSManaged
+  public var comment: String?
+  @NSManaged
+  public var composer: String?
+  @NSManaged
   public var contentType: String?
   @NSManaged
   public var contentTypeTranscoded: String?
   @NSManaged
   public var disk: String?
+  @NSManaged
+  public var path: String?
   @NSManaged
   public var relFilePath: String?
   @NSManaged
