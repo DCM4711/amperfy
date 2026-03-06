@@ -39,6 +39,8 @@ extension Notification.Name {
     .Name(rawValue: "de.amperfy.settings.offline-mode")
   public static let networkStatusChanged = Notification
     .Name(rawValue: "de.amperfy.settings.network.status.changed")
+  public static let songLyricsSynced = Notification
+    .Name(rawValue: "de.amperfy.song.lyrics.synced")
 }
 
 // MARK: - DownloadNotification

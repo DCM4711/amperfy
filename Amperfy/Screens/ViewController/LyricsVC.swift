@@ -63,6 +63,18 @@ class LyricsVC: UIViewController {
     self.lyricsView = lyricsView
 
     player.addNotifier(notifier: self)
+
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(handleSongLyricsSynced),
+      name: .songLyricsSynced,
+      object: nil
+    )
+  }
+
+  @objc
+  private func handleSongLyricsSynced() {
+    refreshLyrics()
   }
 
   override func viewIsAppearing(_ animated: Bool) {

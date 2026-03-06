@@ -220,6 +220,9 @@ public class ScrobbleSyncer {
         do {
           try await librarySyncer.sync(song: curPlayingSong)
           os_log("Synced song info from server: %s", log: log, type: .debug, curPlayingSong.displayString)
+          await MainActor.run {
+            NotificationCenter.default.post(name: .songLyricsSynced, object: nil)
+          }
         } catch {
           if !Task.isCancelled {
             os_log("Failed to sync song info: %s", log: log, type: .debug, error.localizedDescription)

@@ -215,6 +215,13 @@ class LargeCurrentlyPlayingPlayerView: UIView {
     let lyricsTap = UITapGestureRecognizer(target: self, action: #selector(handleLyricsTap(_:)))
     lyricsView!.addGestureRecognizer(lyricsTap)
     upperContainerView.addSubview(lyricsView!)
+
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(handleSongLyricsSynced),
+      name: .songLyricsSynced,
+      object: nil
+    )
     
     // Scrollable view for static/unsynced lyrics - no table view animations
     staticLyricsScrollView = MaskedScrollView()
@@ -326,6 +333,13 @@ class LargeCurrentlyPlayingPlayerView: UIView {
       // Width needs to accommodate 5 stars + spacing + heart
       ratingView!.widthAnchor.constraint(equalToConstant: 250),
     ])
+  }
+
+  @objc
+  private func handleSongLyricsSynced() {
+    if isLyricsViewAllowedToDisplay {
+      initializeLyrics()
+    }
   }
 
   @objc
