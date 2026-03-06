@@ -113,9 +113,11 @@ public class AmperKit {
   // internal player helper classes that interact only via player callbacks
   private var playerDownloadPreparationHandler: PlayerDownloadPreparationHandler?
   private var playerAudioSessionHandler: AudioSessionHandler?
-  private var playerNowPlayingInfoCenterHandler: NowPlayingInfoCenterHandler?
   private var playerRemoteCommandCenterHandler: RemoteCommandCenterHandler?
   private var playerNotificationAdapter: PlayerNotificationAdapter?
+
+  @MainActor
+  public private(set) var nowPlayingInfoCenterHandler: NowPlayingInfoCenterHandler?
 
   @MainActor
   private func createPlayer() -> PlayerFacade {
@@ -183,7 +185,7 @@ public class AmperKit {
     )
     facadeImpl.isOfflineMode = storage.settings.user.isOfflineMode
 
-    playerNowPlayingInfoCenterHandler = NowPlayingInfoCenterHandler(
+    nowPlayingInfoCenterHandler = NowPlayingInfoCenterHandler(
       musicPlayer: curPlayer,
       backendAudioPlayer: backendAudioPlayer,
       nowPlayingInfoCenter: MPNowPlayingInfoCenter.default(),
@@ -195,7 +197,7 @@ public class AmperKit {
         self.getMeta(accountInfo).playableDownloadManager
       }
     )
-    curPlayer.addNotifier(notifier: playerNowPlayingInfoCenterHandler!)
+    curPlayer.addNotifier(notifier: nowPlayingInfoCenterHandler!)
     playerRemoteCommandCenterHandler = RemoteCommandCenterHandler(
       musicPlayer: facadeImpl,
       backendAudioPlayer: backendAudioPlayer,

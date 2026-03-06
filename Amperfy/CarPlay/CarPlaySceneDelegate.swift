@@ -111,6 +111,7 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
       CPNowPlayingTemplate.shared.add(self)
       self.interfaceController = interfaceController
       self.interfaceController?.delegate = self
+      self.installArtworkStarOverlay()
       self.configureNowPlayingTemplate()
 
       accountNotificationHandler?
@@ -171,6 +172,7 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
         os_log("CarPlay: no account available -> do nothing", log: self.log, type: .info)
         return
       }
+      self.removeArtworkStarOverlay()
       self.interfaceController = nil
       appDelegate.notificationHandler.remove(self, name: .fetchControllerSortChanged, object: nil)
       appDelegate.notificationHandler.remove(self, name: .offlineModeChanged, object: nil)

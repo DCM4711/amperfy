@@ -33,6 +33,17 @@ extension CarPlaySceneDelegate {
     playerQueueSection.updateSections(createPlayerQueueSections())
   }
 
+  func installArtworkStarOverlay() {
+    AmperKit.shared.nowPlayingInfoCenterHandler?.artworkTransform = { artwork, playable in
+      guard let song = playable.asSong else { return artwork }
+      return CarPlaySceneDelegate.overlayStarRating(on: artwork, rating: song.rating)
+    }
+  }
+
+  func removeArtworkStarOverlay() {
+    AmperKit.shared.nowPlayingInfoCenterHandler?.artworkTransform = nil
+  }
+
   func configureNowPlayingTemplate() {
     var buttons: [CPNowPlayingButton] = []
     buttons.append(
@@ -50,7 +61,7 @@ extension CarPlaySceneDelegate {
       )
       if let currentlyPlaying = appDelegate.player.currentlyPlaying,
          !currentlyPlaying.isRadio {
-        let isFavorite = appDelegate.player.currentlyPlaying?.isFavorite ?? false
+        let isFavorite = currentlyPlaying.isFavorite
         buttons.append(
           CPNowPlayingImageButton(
             image: isFavorite ? .heartFill : .heartEmpty,
@@ -93,11 +104,59 @@ extension CarPlaySceneDelegate {
           CPListSection(items: availablePlaybackRates),
         ])
         interfaceController?.pushTemplate(playbackRateTemplate, animated: true, completion: nil)
-
       })
     )
     CPNowPlayingTemplate.shared.updateNowPlayingButtons(buttons)
     CPNowPlayingTemplate.shared.isUpNextButtonEnabled = true
+  }
+
+  /// Composites a star rating bar at the bottom of the artwork image.
+  static func overlayStarRating(on artwork: UIImage, rating: Int) -> UIImage {
+    let artworkSize = artwork.size
+    guard artworkSize.width > 0, artworkSize.height > 0 else { return artwork }
+
+    let starCount = 5
+    let starPointSize: CGFloat = artworkSize.width * 0.07
+    let starSpacing: CGFloat = starPointSize * 0.4
+    let bottomPadding: CGFloat = artworkSize.height * 0.03
+
+    let config = UIImage.SymbolConfiguration(pointSize: starPointSize, weight: .medium)
+    let filledStar = UIImage(systemName: "star.fill")!.withConfiguration(config)
+    let emptyStar = UIImage(systemName: "star")!.withConfiguration(config)
+    let starSize = filledStar.size
+
+    let totalStarsWidth = CGFloat(starCount) * starSize.width
+      + CGFloat(starCount - 1) * starSpacing
+    let starsX = (artworkSize.width - totalStarsWidth) / 2
+    let starsY = artworkSize.height - starSize.height - bottomPadding
+
+    let renderer = UIGraphicsImageRenderer(size: artworkSize)
+    return renderer.image { ctx in
+      artwork.draw(in: CGRect(origin: .zero, size: artworkSize))
+
+      let bgRect = CGRect(
+        x: 0,
+        y: starsY - bottomPadding,
+        width: artworkSize.width,
+        height: starSize.height + bottomPadding * 2
+      )
+      UIColor(white: 0.15, alpha: 0.85).setFill()
+      ctx.fill(bgRect)
+
+      let goldenYellow = UIColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1.0)
+      let paleWhite = UIColor(white: 1.0, alpha: 0.3)
+
+      for i in 0..<starCount {
+        let x = starsX + CGFloat(i) * (starSize.width + starSpacing)
+        if i < rating {
+          let tintedStar = filledStar.withTintColor(goldenYellow, renderingMode: .alwaysOriginal)
+          tintedStar.draw(at: CGPoint(x: x, y: starsY))
+        } else {
+          let tintedStar = emptyStar.withTintColor(paleWhite, renderingMode: .alwaysOriginal)
+          tintedStar.draw(at: CGPoint(x: x, y: starsY))
+        }
+      }
+    }
   }
 
   func displayNowPlaying(immediately: Bool = false, completion: @escaping (() -> ())) {

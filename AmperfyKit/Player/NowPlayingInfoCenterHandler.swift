@@ -37,6 +37,10 @@ public class NowPlayingInfoCenterHandler {
   private var lastNowPlayingUpdate: Date = .distantPast
   private let nowPlayingUpdateInterval: TimeInterval = 5.0
 
+  /// Optional transform applied to artwork before setting it on the now playing info center.
+  /// Used by CarPlay to overlay star ratings onto the album artwork.
+  public var artworkTransform: ((_ artwork: UIImage, _ playable: AbstractPlayable) -> UIImage)?
+
   init(
     musicPlayer: AudioPlayer,
     backendAudioPlayer: BackendAudioPlayer,
@@ -75,6 +79,11 @@ public class NowPlayingInfoCenterHandler {
     }
   }
 
+  /// Triggers a now playing info update for the given playable.
+  public func refreshNowPlayingInfo(playable: AbstractPlayable) {
+    updateNowPlayingInfo(playable: playable)
+  }
+
   private func updateNowPlayingInfo(playable: AbstractPlayable) {
     let albumTitle = playable.asSong?.album?.name ?? ""
 
@@ -90,6 +99,10 @@ public class NowPlayingInfoCenterHandler {
       if let artwork = playable.artwork {
         getArtworkDownloaderCB(accountInfo).download(object: artwork)
       }
+    }
+
+    if let transform = artworkTransform {
+      artworkImage = transform(artworkImage, playable)
     }
 
     let concurrentSafeArtworkImage = artworkImage
