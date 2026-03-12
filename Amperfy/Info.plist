@@ -17,7 +17,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>Musify</string>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>Musify</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -41,9 +41,9 @@
 	<array>
 		<dict>
 			<key>INAlternativeAppName</key>
-			<string>Amperfy Music</string>
+			<string>Musify Music</string>
 			<key>INAlternativeAppNamePronunciationHint</key>
-			<string>amperfy music</string>
+			<string>musify music</string>
 		</dict>
 	</array>
 	<key>INIntentsSupported</key>
