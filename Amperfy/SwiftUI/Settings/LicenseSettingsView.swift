@@ -25,6 +25,14 @@ import SwiftUI
 
 struct LicenseSettingsView: View {
   var licenseText = """
+  Musify
+  Copyright © 2026 DonkeyCat GmbH
+  A fork of Amperfy
+  https://github.com/DCM4711/amperfy/tree/custom-features
+  Original Amperfy: https://github.com/BLeeEZ/amperfy
+  GPLv3 Licensed
+
+  Original Amperfy:
   Copyright © 2019-2026 Maximilian Bauer
   All rights reserved.
   GPLv3 Licensed

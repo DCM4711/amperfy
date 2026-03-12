@@ -48,6 +48,13 @@ extension AppDelegate {
     guard builder.system == .main else { return }
 
     #if targetEnvironment(macCatalyst) // ok
+      // Replace About menu with custom Musify version info
+      builder.replace(menu: .about, with: UIMenu(options: .displayInline, children: [
+        UIAction(title: "About Musify") { _ in
+          self.showCustomAboutPanel()
+        },
+      ]))
+
       // Add File menu
       let fileMenus = [
         UIMenu(options: .displayInline, children: [
@@ -104,11 +111,32 @@ extension AppDelegate {
 
     builder.insertChild(UIMenu(options: .displayInline, children: [
       UIAction(title: "Report an issue on GitHub") { _ in
-        if let url = URL(string: "https://github.com/BLeeEZ/amperfy/issues") {
+        if let url = URL(string: "https://github.com/DCM4711/amperfy/issues") {
           UIApplication.shared.open(url)
         }
       },
     ]), atStartOfMenu: .help)
+  }
+
+  private func showCustomAboutPanel() {
+    let message = """
+    Version \(musifyVersion)
+    Based on Amperfy Version \(AppDelegate.version) (Build \(AppDelegate.buildNumber))
+
+    © 2026 DonkeyCat GmbH
+    A fork of Amperfy by Maximilian Bauer
+    Licensed under GPLv3
+    """
+    let alert = UIAlertController(title: "Musify", message: message, preferredStyle: .alert)
+    alert.addAction(UIAlertAction(title: "OK", style: .default))
+
+    if let windowScene = UIApplication.shared.connectedScenes
+      .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+      let rootVC = windowScene.windows.first?.rootViewController {
+      var topVC = rootVC
+      while let presented = topVC.presentedViewController { topVC = presented }
+      topVC.present(alert, animated: true)
+    }
   }
 
   @objc
