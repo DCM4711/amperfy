@@ -61,25 +61,29 @@ extension CarPlaySceneDelegate {
       )
       if let currentlyPlaying = appDelegate.player.currentlyPlaying,
          !currentlyPlaying.isRadio {
-        let isFavorite = currentlyPlaying.isFavorite
+        let currentRating = currentlyPlaying.asSong?.rating ?? 0
+        let starImage = UIImage(systemName: currentRating > 0 ? "star.fill" : "star")!
         buttons.append(
           CPNowPlayingImageButton(
-            image: isFavorite ? .heartFill : .heartEmpty,
+            image: starImage,
             handler: { [weak self] button in
               guard let self = self else { return }
-              guard let playableInfo = appDelegate.player.currentlyPlaying,
-                    let account = playableInfo.account else { return }
+              guard let song = appDelegate.player.currentlyPlaying?.asSong,
+                    let account = song.account else { return }
+              let newRating = (song.rating + 1) % 6
+              song.rating = newRating
               Task { @MainActor in
                 do {
-                  try await playableInfo
-                    .remoteToggleFavorite(
-                      syncer: self.appDelegate
-                        .getMeta(account.info).librarySyncer
-                    )
+                  try await self.appDelegate.getMeta(account.info)
+                    .librarySyncer.setRating(song: song, rating: newRating)
                 } catch {
-                  self.appDelegate.eventLogger.report(topic: "Toggle Favorite", error: error)
+                  self.appDelegate.eventLogger.report(topic: "Song Rating", error: error)
                 }
                 self.configureNowPlayingTemplate()
+                // Refresh artwork to update star overlay
+                if let playable = self.appDelegate.player.currentlyPlaying {
+                  AmperKit.shared.nowPlayingInfoCenterHandler?.refreshNowPlayingInfo(playable: playable)
+                }
               }
             }
           )
@@ -140,7 +144,7 @@ extension CarPlaySceneDelegate {
         width: artworkSize.width,
         height: starSize.height + bottomPadding * 2
       )
-      UIColor(white: 0.15, alpha: 0.85).setFill()
+      UIColor.black.withAlphaComponent(0.90).setFill()
       ctx.fill(bgRect)
 
       let goldenYellow = UIColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1.0)

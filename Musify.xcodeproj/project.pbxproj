@@ -2278,7 +2278,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 508385DF21C5965B00C4BB32 /* Build configuration list for PBXProject "Amperfy" */;
+			buildConfigurationList = 508385DF21C5965B00C4BB32 /* Build configuration list for PBXProject "Musify" */;
 			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -3288,7 +3288,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		508385DF21C5965B00C4BB32 /* Build configuration list for PBXProject "Amperfy" */ = {
+		508385DF21C5965B00C4BB32 /* Build configuration list for PBXProject "Musify" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5083860A21C5965E00C4BB32 /* Debug */,
