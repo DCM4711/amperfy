@@ -94,4 +94,26 @@ class SettingsTest: XCTestCase {
     XCTAssertTrue(reread.isLibrarySynced)
     XCTAssertEqual(reread.librarySyncVersion, AppSettings().librarySyncVersion)
   }
+
+  @MainActor
+  func testLibraryDisplaySettings_SavedWithoutNewItem_ListsItAsNotUsed() throws {
+    // Saved by an app version that had no Queue item
+    let saved = Data(#"{"combined":[[0,1,5],[2,3,4,6,7,8,9,10,12,13,14]]}"#.utf8)
+    let settings = try JSONDecoder().decode(LibraryDisplaySettings.self, from: saved)
+    XCTAssertEqual(settings.inUse, [.artists, .albums, .playlists])
+    XCTAssertTrue(settings.notUsed.contains(.queue))
+    XCTAssertFalse(settings.isVisible(libraryType: .queue))
+    XCTAssertEqual(
+      Set(settings.inUse + settings.notUsed).count,
+      LibraryDisplayType.allCases.count
+    )
+  }
+
+  @MainActor
+  func testLibraryDisplaySettings_SavedOrderIsKept() throws {
+    let saved = Data(#"{"combined":[[15,5,0],[1,2,3,4,6,7,8,9,10,12,13,14]]}"#.utf8)
+    let settings = try JSONDecoder().decode(LibraryDisplaySettings.self, from: saved)
+    XCTAssertEqual(settings.inUse, [.queue, .playlists, .artists])
+    XCTAssertEqual(settings.notUsed.count, LibraryDisplayType.allCases.count - 3)
+  }
 }

@@ -43,6 +43,7 @@ public enum LibraryDisplayType: Int, CaseIterable, Sendable {
   case newestAlbums = 12
   case recentAlbums = 13
   case radios = 14
+  case queue = 15
 
   public static func createByDisplayName(name: String) -> LibraryDisplayType? {
     .allCases.first {
@@ -80,6 +81,8 @@ public enum LibraryDisplayType: Int, CaseIterable, Sendable {
       return "Recently Played Albums"
     case .radios:
       return "Radios"
+    case .queue:
+      return "Queue"
     }
   }
 
@@ -113,6 +116,8 @@ public enum LibraryDisplayType: Int, CaseIterable, Sendable {
       return UIImage.albumRecent
     case .radios:
       return UIImage.radio
+    case .queue:
+      return UIImage.queue
     }
   }
 }
@@ -149,7 +154,10 @@ public struct LibraryDisplaySettings: Sendable, Codable {
     }
 
     if mapped.count == 2 {
-      self.combined = mapped
+      // Items added in a newer app version are missing from saved settings: list them as not used
+      let missing = LibraryDisplayType.allCases
+        .filter { !mapped[0].contains($0) && !mapped[1].contains($0) }
+      self.combined = [mapped[0], mapped[1] + missing]
     } else if let first = mapped.first {
       // If only one group present, treat it as inUse and compute notUsed
       self = LibraryDisplaySettings(inUse: first)

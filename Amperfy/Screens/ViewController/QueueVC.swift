@@ -49,6 +49,8 @@ class QueueVC: UIViewController {
   }
 
   var tableView: UITableView?
+  /// Opened from the Library list instead of the macOS inspector panel
+  var isShownInLibrary = false
 
   var mainViewController: UIViewController? {
     AppDelegate.mainWindowHostVC as? UIViewController
@@ -58,6 +60,9 @@ class QueueVC: UIViewController {
     super.viewDidLoad()
 
     let tableView = UITableView(frame: .zero, style: .plain)
+    if isShownInLibrary {
+      view.backgroundColor = .systemBackground
+    }
     view.addSubview(tableView)
 
     tableView.translatesAutoresizingMaskIntoConstraints = false
@@ -118,9 +123,11 @@ class QueueVC: UIViewController {
       contextNextQueueSectionHeader = sectionView
     }
 
-    // hard top border -> other glass effect is to big and covers top sidebar elements
-    self.tableView!.topEdgeEffect.style = .hard
-    navigationController?.navigationBar.isTranslucent = false
+    if !isShownInLibrary {
+      // hard top border -> other glass effect is to big and covers top sidebar elements
+      self.tableView!.topEdgeEffect.style = .hard
+      navigationController?.navigationBar.isTranslucent = false
+    }
 
     player.addNotifier(notifier: self)
     refresh()

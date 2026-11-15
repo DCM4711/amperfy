@@ -69,6 +69,10 @@ extension LibraryDisplayType {
       )
     case .radios:
       return AppStoryboard.Main.segueToRadios(account: account)
+    case .queue:
+      let queueVC = QueueVC()
+      queueVC.isShownInLibrary = true
+      return queueVC
     }
   }
 }
