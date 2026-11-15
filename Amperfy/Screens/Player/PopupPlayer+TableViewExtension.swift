@@ -99,7 +99,7 @@ extension PopupPlayerVC: UITableViewDataSource, UITableViewDelegate {
       refreshUserQueueSectionHeader()
       return userQueueSectionHeader
     case .contextNext:
-      return contextNextQueueSectionHeader
+      return nil // no "Next from" row: shuffle and repeat are in the player's options menu
     case .none:
       return nil
     }
@@ -118,7 +118,7 @@ extension PopupPlayerVC: UITableViewDataSource, UITableViewDelegate {
         return UserQueueSectionHeader.frameHeight
       }
     case .contextNext:
-      return ContextQueueNextSectionHeader.frameHeight
+      return CGFloat.leastNormalMagnitude
     case .none:
       return 0.0
     }
@@ -135,11 +135,13 @@ extension PopupPlayerVC: UITableViewDataSource, UITableViewDelegate {
 
   func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
     switch PlayerSectionCategory(rawValue: section) {
-    case .contextPrev: return 30.0 // bottom padding of prev section (space above currently playing cell)
+    case .contextPrev:
+      // no extra space: the gap above the currently playing cell matches the gap below it
+      return CGFloat.leastNormalMagnitude
     case .currentlyPlaying, .none, .userQueue: return 0.0
     case .contextNext: // calculate footer height to keep currently playing row on top of table view
       let heightOfContextNextRows = tableView.frame.height - CurrentlyPlayingTableCell
-        .rowHeight - ContextQueueNextSectionHeader.frameHeight
+        .rowHeight
       let contextNextRowOccupiedHeight = CGFloat(player.nextQueueCount) * PlayableTableCell
         .rowHeight
       let offset = heightOfContextNextRows - contextNextRowOccupiedHeight

@@ -444,7 +444,39 @@ class PlayerControlView: UIView {
     if !queueActions.isEmpty {
       menuActions.append(UIMenu(options: .displayInline, children: queueActions))
     }
-    
+
+    // Section 3.5: Shuffle, Repeat (the queue has no "Next from" row with these buttons)
+    if player.playerMode == .music {
+      let repeatActions = RepeatMode.allCases.map { mode in
+        UIAction(
+          title: mode.description,
+          state: player.repeatMode == mode ? .on : .off,
+          handler: { _ in
+            self.player.setRepeatMode(mode)
+          }
+        )
+      }
+      let repeatImage: UIImage = player.repeatMode == .single ? .repeatOne : .repeatAll
+      let repeatMenu = UIMenu(
+        title: "Repeat",
+        subtitle: player.repeatMode.description,
+        image: repeatImage,
+        children: repeatActions
+      )
+      let shuffleAction = UIAction(
+        title: "Shuffle",
+        image: .shuffle,
+        attributes: appDelegate.storage.settings.user.isPlayerShuffleButtonEnabled ? [] : .disabled,
+        state: player.isShuffle ? .on : .off,
+        handler: { _ in
+          self.player.toggleShuffle()
+          self.rootView?.scrollToCurrentlyPlayingRow()
+        }
+      )
+      // Built in reverse: Shuffle appears above Repeat
+      menuActions.append(UIMenu(options: .displayInline, children: [repeatMenu, shuffleAction]))
+    }
+
     // Section 3: Sleep Timer, Playback Rate
     var timerActions = [UIMenuElement]()
     timerActions.append(createPlaybackRateMenu())
