@@ -81,6 +81,16 @@ public class MetaManager {
     DuplicateEntitiesResolver(account: account, storage: storage)
   }()
 
+  public lazy var missingSongMetadataSyncer: MissingSongMetadataSyncer = {
+    MissingSongMetadataSyncer(
+      account: account,
+      storage: storage,
+      librarySyncer: librarySyncer,
+      networkMonitor: networkMonitor,
+      eventLogger: eventLogger
+    )
+  }()
+
   public lazy var playableDownloadDelegate: DownloadManagerDelegate = {
     let artworkExtractor = EmbeddedArtworkExtractor()
     let delegate = PlayableDownloadDelegate(
@@ -282,6 +292,7 @@ public class MetaManager {
     playableDownloadManager.start()
     artworkDownloadManager.start()
     backgroundLibrarySyncer.start()
+    missingSongMetadataSyncer.start()
     let scrobbler = createScrobbleSyncer(player: player)
     player.addNotifier(notifier: scrobbler)
   }
@@ -292,6 +303,7 @@ public class MetaManager {
     artworkDownloadManager.start()
     playableDownloadManager.start()
     backgroundLibrarySyncer.start()
+    missingSongMetadataSyncer.start()
     let scrobbler = createScrobbleSyncer(player: player)
     player.addNotifier(notifier: scrobbler)
     scrobbler.start()
@@ -302,6 +314,7 @@ public class MetaManager {
     scrobbleSyncer?.stop()
     scrobbleSyncer = nil
     backgroundLibrarySyncer.stop()
+    missingSongMetadataSyncer.stop()
     artworkDownloadManager.stop()
     playableDownloadManager.stop()
   }

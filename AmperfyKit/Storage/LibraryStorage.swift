@@ -1647,6 +1647,89 @@ public class LibraryStorage: PlayableFileCachable {
     return songs ?? [Song]()
   }
 
+  /// Songs known only by id: cached songs re-created from files after a library resync
+  public func getSongsWithoutMetadata(for account: Account) -> [Song] {
+    let fetchRequest = SongMO.identifierSortedFetchRequest
+    fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+      getFetchPredicate(forAccount: account),
+      NSPredicate(format: "%K == nil", #keyPath(SongMO.title)),
+      NSPredicate(format: "%K != nil AND %K != ''", #keyPath(SongMO.id), #keyPath(SongMO.id)),
+    ])
+    let foundSongs = try? context.fetch(fetchRequest)
+    return foundSongs?.compactMap { Song(managedObject: $0) } ?? [Song]()
+  }
+
+  /// Songs with exactly this title (case and diacritic insensitive)
+  public func getSongs(for account: Account, title: String) -> [Song] {
+    let fetchRequest = SongMO.identifierSortedFetchRequest
+    fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+      getFetchPredicate(forAccount: account),
+      NSPredicate(format: "%K ==[cd] %@", #keyPath(SongMO.title), title),
+    ])
+    let foundSongs = try? context.fetch(fetchRequest)
+    return foundSongs?.compactMap { Song(managedObject: $0) } ?? [Song]()
+  }
+
+  /// An old download whose song got a new id on the server: hands its downloaded file, queue and
+  /// playlist entries to the song with the new id, then removes the old one.
+  /// If the new song is already downloaded, the old file is deleted instead.
+  /// Returns true if the file was moved, false if it was deleted.
+  @discardableResult
+  public func replaceOrphanedSong(_ orphan: Song, with target: Song) -> Bool {
+    var isFileMoved = false
+    if !target.isCached || !fileManager.fileExits(relFilePath: target.relFilePath!),
+       let orphanRelFilePath = orphan.relFilePath,
+       let orphanAbsFilePath = fileManager.getAbsoluteAmperfyPath(relFilePath: orphanRelFilePath),
+       FileManager.default.fileExists(atPath: orphanAbsFilePath.path) {
+      target.contentTypeTranscoded = orphan.contentTypeTranscoded ?? orphan.contentType
+      if let targetRelFilePath = fileManager.createRelPath(for: target),
+         let targetAbsFilePath = fileManager.getAbsoluteAmperfyPath(relFilePath: targetRelFilePath) {
+        do {
+          try FileManager.default.createDirectory(
+            at: targetAbsFilePath.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+          )
+          if FileManager.default.fileExists(atPath: targetAbsFilePath.path) {
+            try FileManager.default.removeItem(at: targetAbsFilePath)
+          }
+          try FileManager.default.moveItem(at: orphanAbsFilePath, to: targetAbsFilePath)
+          target.relFilePath = targetRelFilePath
+          orphan.relFilePath = nil
+          isFileMoved = true
+        } catch {
+          os_log(
+            "Moving <%s> to <%s> failed: %s",
+            log: log,
+            type: .error,
+            orphanAbsFilePath.path,
+            targetAbsFilePath.path,
+            error.localizedDescription
+          )
+        }
+      }
+    }
+    orphan.managedObject.passOwnership(to: target.managedObject)
+    deleteOrphanedSong(orphan)
+    return isFileMoved
+  }
+
+  /// Removes a song with its downloaded file, lyrics and embedded artwork
+  public func deleteOrphanedSong(_ orphan: Song) {
+    deleteCache(ofPlayable: orphan)
+    if let lyricsRelFilePath = orphan.lyricsRelFilePath,
+       let lyricsAbsFilePath = fileManager.getAbsoluteAmperfyPath(relFilePath: lyricsRelFilePath) {
+      try? FileManager.default.removeItem(at: lyricsAbsFilePath)
+    }
+    if let embeddedArtwork = orphan.managedObject.embeddedArtwork {
+      if let artworkRelFilePath = embeddedArtwork.relFilePath.flatMap({ URL(string: $0) }),
+         let artworkAbsFilePath = fileManager.getAbsoluteAmperfyPath(relFilePath: artworkRelFilePath) {
+        try? FileManager.default.removeItem(at: artworkAbsFilePath)
+      }
+      context.delete(embeddedArtwork)
+    }
+    context.delete(orphan.managedObject)
+  }
+
   public func getRandomSongs(for account: Account, count: Int = 100, onlyCached: Bool) -> [Song] {
     let fetchRequest = SongMO.identifierSortedFetchRequest
     fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [

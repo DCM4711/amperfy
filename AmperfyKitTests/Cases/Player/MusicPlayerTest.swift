@@ -149,11 +149,13 @@ class MOCK_AlertDisplayable: AlertDisplayable {
 // MARK: - MOCK_LibrarySyncer
 
 final class MOCK_LibrarySyncer: LibrarySyncer {
+  nonisolated(unsafe) var syncSongCB: ((Song) throws -> Void)?
+
   func syncInitial(statusNotifyier: SyncCallbacks?) async throws {}
   func sync(genre: Genre) async throws {}
   func sync(artist: Artist) async throws {}
   func sync(album: Album) async throws {}
-  func sync(song: Song) async throws {}
+  func sync(song: Song) async throws { try syncSongCB?(song) }
   func sync(podcast: Podcast) async throws {}
   func syncNewestPodcastEpisodes() async throws {}
   func syncNewestAlbums(offset: Int, count: Int) async throws {}
