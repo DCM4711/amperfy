@@ -40,7 +40,9 @@ class CurrentlyPlayingTableCell: BasicTableCell {
   @IBOutlet
   weak var optionsButton: UIButton!
 
-  private let playIndicator = PlayIndicator(rootViewTypeName: "PopupPlayerCurrentlyPlaying")
+  private var playIndicator: PlayIndicator?
+  /// The player's handler, or an own one when shown in the Library queue (no popup player)
+  private var playerHandler: PlayerUIHandler?
   private let durationLabel = UILabel()
   private let ratingStackView = UIStackView()
   private var ratingStarViews = [UIImageView]()
@@ -51,6 +53,13 @@ class CurrentlyPlayingTableCell: BasicTableCell {
 
   func prepare(toWorkOnRootView: PopupPlayerVC?) {
     rootView = toWorkOnRootView
+    playerHandler = toWorkOnRootView?.playerHandler ??
+      PlayerUIHandler(player: appDelegate.player, style: .popupPlayer)
+    // each screen needs its own indicator: the indicator layer is shared per name
+    playIndicator = PlayIndicator(
+      rootViewTypeName: toWorkOnRootView != nil ? "PopupPlayerCurrentlyPlaying" :
+        "LibraryQueueCurrentlyPlaying"
+    )
     titleLabel.applyAmperfyStyle()
     artistLabel.applyAmperfyStyle()
     setupDurationAndRating()
@@ -140,7 +149,7 @@ class CurrentlyPlayingTableCell: BasicTableCell {
   }
 
   func refresh() {
-    rootView?.playerHandler?.refreshCurrentlyPlayingInfo(
+    playerHandler?.refreshCurrentlyPlayingInfo(
       artworkImage: artworkImage,
       titleLabel: titleLabel,
       artistLabel: artistLabel
@@ -153,13 +162,13 @@ class CurrentlyPlayingTableCell: BasicTableCell {
 
   private func refreshPlayStateDurationAndRating() {
     guard let playable = appDelegate.player.currentlyPlaying else {
-      playIndicator.reset()
+      playIndicator?.reset()
       durationLabel.isHidden = true
       ratingStackView.isHidden = true
       return
     }
     // Animated bars while playing, paused bars otherwise
-    playIndicator.display(playable: playable, rootView: artworkImage, isOnImage: true)
+    playIndicator?.display(playable: playable, rootView: artworkImage, isOnImage: true)
     setNeedsLayout()
 
     durationLabel.isHidden = playable.isRadio || !appDelegate.storage.settings.user.isShowSongDuration
@@ -173,7 +182,7 @@ class CurrentlyPlayingTableCell: BasicTableCell {
   }
 
   func refreshArtwork() {
-    rootView?.playerHandler?.refreshArtwork(artworkImage: artworkImage)
+    playerHandler?.refreshArtwork(artworkImage: artworkImage)
   }
 
   @IBAction

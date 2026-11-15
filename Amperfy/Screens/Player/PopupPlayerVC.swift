@@ -272,28 +272,12 @@ class PopupPlayerVC: UIViewController, UIScrollViewDelegate {
 
   /// Keeps the scroll position on song changes; only scrolls when the current song left the visible rows
   func scrollToCurrentlyPlayingRowIfHidden() {
-    tableView.layoutIfNeeded()
-    let currentRowRect = tableView.rectForRow(
-      at: IndexPath(row: 0, section: PlayerSectionCategory.currentlyPlaying.rawValue)
-    )
-    var visibleRect = tableView.bounds.inset(by: tableView.adjustedContentInset)
-    if activeDisplayedSectionHeader.contains(.contextPrev) {
+    tableView.scrollToRowIfHidden(
+      IndexPath(row: 0, section: PlayerSectionCategory.currentlyPlaying.rawValue),
       // the pinned "Previous" header covers the top rows
-      visibleRect.origin.y += ContextQueuePrevSectionHeader.frameHeight
-      visibleRect.size.height -= ContextQueuePrevSectionHeader.frameHeight
-    }
-    if currentRowRect.maxY > visibleRect.maxY {
-      // moving out at the bottom: scroll just enough to keep it as the last visible row
-      tableView.setContentOffset(
-        CGPoint(
-          x: tableView.contentOffset.x,
-          y: tableView.contentOffset.y + currentRowRect.maxY - visibleRect.maxY
-        ),
-        animated: true
-      )
-    } else if currentRowRect.minY < visibleRect.minY {
-      scrollToCurrentlyPlayingRow()
-    }
+      pinnedHeaderHeight: activeDisplayedSectionHeader.contains(.contextPrev) ?
+        ContextQueuePrevSectionHeader.frameHeight : 0
+    )
   }
 
   func scrollToCurrentlyPlayingRow() {

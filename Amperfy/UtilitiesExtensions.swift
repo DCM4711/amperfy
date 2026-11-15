@@ -364,6 +364,25 @@ extension UITableView {
     indexPath.section < numberOfSections && indexPath
       .row < numberOfRows(inSection: indexPath.section)
   }
+
+  /// Leaves the scroll position alone while the row is fully visible. A row moving out at the
+  /// bottom stays the last visible row; a row hidden at the top is scrolled to the top.
+  func scrollToRowIfHidden(_ indexPath: IndexPath, pinnedHeaderHeight: CGFloat) {
+    guard hasRowAt(indexPath: indexPath) else { return }
+    layoutIfNeeded()
+    let rowRect = rectForRow(at: indexPath)
+    var visibleRect = bounds.inset(by: adjustedContentInset)
+    visibleRect.origin.y += pinnedHeaderHeight
+    visibleRect.size.height -= pinnedHeaderHeight
+    if rowRect.maxY > visibleRect.maxY {
+      setContentOffset(
+        CGPoint(x: contentOffset.x, y: contentOffset.y + rowRect.maxY - visibleRect.maxY),
+        animated: true
+      )
+    } else if rowRect.minY < visibleRect.minY {
+      scrollToRow(at: indexPath, at: .top, animated: false)
+    }
+  }
 }
 
 extension UICollectionView {

@@ -49,8 +49,10 @@ class QueueVC: UIViewController {
   }
 
   var tableView: UITableView?
-  /// Opened from the Library list instead of the macOS inspector panel
+  /// Opened from the Library list instead of the macOS inspector panel:
+  /// shows the current song like the player's queue and has no "Next from" row
   var isShownInLibrary = false
+  private var currentlyPlayingCell: CurrentlyPlayingTableCell?
 
   var mainViewController: UIViewController? {
     AppDelegate.mainWindowHostVC as? UIViewController
@@ -133,6 +135,18 @@ class QueueVC: UIViewController {
     refresh()
   }
 
+  override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(animated)
+    guard isShownInLibrary, player.currentlyPlaying != nil, let tableView else { return }
+    reloadData()
+    tableView.layoutIfNeeded()
+    tableView.scrollToRow(
+      at: IndexPath(row: 0, section: PlayerSectionCategory.currentlyPlaying.rawValue),
+      at: .top,
+      animated: false
+    )
+  }
+
   override var traitCollection: UITraitCollection {
     super.traitCollection.modifyingTraits { traits in
       traits.horizontalSizeClass = .compact
@@ -146,6 +160,7 @@ class QueueVC: UIViewController {
 extension QueueVC: UITableViewDelegate, UITableViewDataSource {
   func setupTableView() {
     tableView?.register(nibName: PlayableTableCell.typeName)
+    tableView?.register(nibName: CurrentlyPlayingTableCell.typeName)
     tableView?.rowHeight = PlayableTableCell.rowHeight
     tableView?.estimatedRowHeight = PlayableTableCell.rowHeight
     tableView?.backgroundColor = .clear
@@ -203,7 +218,7 @@ extension QueueVC: UITableViewDelegate, UITableViewDataSource {
       refreshUserQueueSectionHeader()
       return userQueueSectionHeader
     case .contextNext:
-      return contextNextQueueSectionHeader
+      return isShownInLibrary ? nil : contextNextQueueSectionHeader
     default:
       return nil
     }
@@ -220,7 +235,8 @@ extension QueueVC: UITableViewDelegate, UITableViewDataSource {
         return UserQueueSectionHeader.frameHeight
       }
     case .contextNext:
-      return ContextQueueNextSectionHeader.frameHeight
+      return isShownInLibrary ? CGFloat.leastNormalMagnitude : ContextQueueNextSectionHeader
+        .frameHeight
     default:
       return 0.0
     }
@@ -244,6 +260,7 @@ extension QueueVC: UITableViewDelegate, UITableViewDataSource {
     case .contextPrev: return player.prevQueueCount
     case .userQueue: return player.userQueueCount
     case .contextNext: return player.nextQueueCount
+    case .currentlyPlaying: return isShownInLibrary && player.currentlyPlaying != nil ? 1 : 0
     default: return 0
     }
   }
@@ -253,8 +270,8 @@ extension QueueVC: UITableViewDelegate, UITableViewDataSource {
     switch sectionCategors {
     case .contextNext, .contextPrev, .none, .userQueue:
       return PlayableTableCell.rowHeight
-    default:
-      return 0
+    case .currentlyPlaying:
+      return CurrentlyPlayingTableCell.rowHeight
     }
   }
 
@@ -276,6 +293,16 @@ extension QueueVC: UITableViewDelegate, UITableViewDataSource {
         playerIndexCb: convertCellViewToPlayerIndex
       )
       cell.backgroundColor = .clear
+      return cell
+    case .currentlyPlaying:
+      if let currentlyPlayingCell {
+        currentlyPlayingCell.refresh()
+        return currentlyPlayingCell
+      }
+      let cell: CurrentlyPlayingTableCell = tableView.dequeueCell(for: tableView, at: indexPath)
+      cell.prepare(toWorkOnRootView: nil)
+      cell.backgroundColor = .clear
+      currentlyPlayingCell = cell
       return cell
     default:
       return UITableViewCell()
@@ -324,7 +351,11 @@ extension QueueVC: UITableViewDelegate, UITableViewDataSource {
     toProposedIndexPath targetIndexPath: IndexPath
   )
     -> IndexPath {
-    targetIndexPath
+    // deny moving rows to the currently playing row
+    if PlayerSectionCategory(rawValue: targetIndexPath.section) == .currentlyPlaying {
+      return sourceIndexPath
+    }
+    return targetIndexPath
   }
 
   // Override to support conditional rearranging of the table view.
@@ -472,6 +503,12 @@ extension QueueVC: MusicPlayable {
 
   func reloadData() {
     tableView?.reloadData()
+    if isShownInLibrary, player.currentlyPlaying != nil, let tableView {
+      tableView.scrollToRowIfHidden(
+        IndexPath(row: 0, section: PlayerSectionCategory.currentlyPlaying.rawValue),
+        pinnedHeaderHeight: player.prevQueueCount > 0 ? ContextQueuePrevSectionHeader.frameHeight : 0
+      )
+    }
   }
 
   func didStartPlaying() {
